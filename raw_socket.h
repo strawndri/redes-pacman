@@ -1,6 +1,6 @@
 #ifndef RAWSOCKET_H_
 #define RAWSOCKET_H_
 
-int ConexaoRawSocket(char *device);
+int cria_raw_socket(char *nome_interface_rede);
 
 #endif

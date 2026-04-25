@@ -1,62 +1,45 @@
-#include <linux/if.h>
+#include <arpa/inet.h>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 
-#include "raw_socket.h"
-
-int create_raw_socket(char *device)
+int cria_raw_socket(char *nome_interface_rede)
 {
-    int socket;
-    struct ifreq ir;
-    struct sockaddr_ll socket_address;
-    struct packet_mreq mr;
-
-    // cria socket
-    // captura todos os protocolos Ethernet
-    socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-    if (socket == -1)
+    // cria arquivo para o socket sem qualquer protocolo
+    int soquete = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    if (soquete == -1)
     {
-        printf("Erro ao criar socket.\n");
+        fprintf(stderr, "Erro ao criar socket: Verifique se você é root!\n");
         exit(-1);
     }
 
-    // obtém o índice da interface de rede (eth0)
-    memset(&ir, 0, sizeof(struct ifreq));
-    memcpy(ir.ifr_name, device, sizeof(device));
-    if (ioctl(socket, SIOCGIFINDEX, &ir) == -1)
+    int ifindex = if_nametoindex(nome_interface_rede);
+
+    struct sockaddr_ll endereco = {0};
+    endereco.sll_family = AF_PACKET;
+    endereco.sll_protocol = htons(ETH_P_ALL);
+    endereco.sll_ifindex = ifindex;
+
+    // inicializa socket
+    if (bind(soquete, (struct sockaddr *)&endereco, sizeof(endereco)) == -1)
     {
-        printf("Erro no ioctl.\n");
+        fprintf(stderr, "Erro ao fazer bind no socket\n");
         exit(-1);
     }
 
-    // configura o endereço do socket para associar à interface
-    memset(&socket_address, 0, sizeof(socket_address));
-    socket_address.sll_family = AF_PACKET;
-    socket_address.sll_protocol = htons(ETH_P_ALL);
-    socket_address.sll_ifindex = ir.ifr_ifindex;
-
-    // associa o socket à interface de rede
-    if (bind(socket, (struct sockaddr *)&socket_address, sizeof(socket_address)) == -1)
-    {
-        printf("Erro no bind\n");
-        exit(-1);
-    }
-
-    // modo promiscuo
-    memset(&mr, 0, sizeof(mr));
-    mr.mr_ifindex = ir.ifr_ifindex;
+    struct packet_mreq mr = {0};
+    mr.mr_ifindex = ifindex;
     mr.mr_type = PACKET_MR_PROMISC;
-    if (setsockopt(socket, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr, sizeof(mr)) == -1)
+
+    // não joga fora o que identifica como lixo: modo promíscuo
+    if (setsockopt(soquete, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr, sizeof(mr)) == -1)
     {
-        printf("Erro ao fazer setsockopt\n");
+        fprintf(stderr, "Erro ao fazer setsockopt: "
+                        "Verifique se a interface de rede foi especificada corretamente.\n");
         exit(-1);
     }
 
-    return socket;
+    return soquete;
 }
