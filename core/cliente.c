@@ -9,9 +9,9 @@ void cliente_executa(int socket)
     printf("executando em modo cliente\n");
     
     unsigned char dados[] = "testando";
-    struct mensagem *msg = mensagem_cria(sizeof(dados), MSG_INICIO, dados);
+    struct mensagem_t *msg = mensagem_cria(sizeof(dados), MSG_INICIO, dados);
     
-    if (mensagem_envia(socket, msg) == 0)
+    if (mensagem_envia(socket, msg) >= 0)
         printf("mensagem enviada.\n");
     else
         printf("mensagem não enviada.\n");

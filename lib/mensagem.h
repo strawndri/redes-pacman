@@ -2,7 +2,7 @@
 #define MENSAGEM_H__
 
 #define MSG_MARCADOR_INICIO 0b01111110
-#define MAX_DADOS 32
+#define MAX_DADOS 31
 
 enum tipo_msg_t
 {
@@ -28,7 +28,7 @@ struct mensagem_t
     unsigned char marcador_inicio;    // 01111110
     unsigned char tamanho;            // tamanho da região de dados (0-31)
     unsigned char sequencia;          // número da sequência (0-63)
-    enum tipo_msg_t tipo;             // tipo da mensagem
+    unsigned char tipo;               // tipo da mensagem (definidos num ENUM)
     unsigned char dados[MAX_DADOS];   // área de dados
     unsigned char crc;                // método de detecção de erros
 };
@@ -39,6 +39,10 @@ struct mensagem_t *mensagem_cria(unsigned char tamanho,
 int mensagem_envia(int socket, struct mensagem_t *msg);
 
 int mensagem_recebe(int socket, struct mensagem_t *msg);
+
+unsigned char crc8_gera(unsigned char *dados, unsigned char tamanho);
+
+unsigned char *mensagem_serializa(struct mensagem_t *msg);
 
 void mensagem_imprime(struct mensagem_t *msg);
 
