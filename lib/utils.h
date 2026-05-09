@@ -14,8 +14,6 @@ int interface_imprime(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME]);
 
 // lê do teclado a interface escolhida
 // RETORNO: índice da interface
-int interface_escolhe(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME], int quantidade);
-
-void interface_mac(char *interface, unsigned char mac[MAC_SIZE]);
+int interface_escolhe(int quantidade);
 
 #endif

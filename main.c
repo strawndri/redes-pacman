@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     int qtd, i, socket;
     
     qtd = interface_imprime(nome_interfaces);
-    i = interface_escolhe(nome_interfaces, qtd);
+    i = interface_escolhe(qtd);
     
     printf("criando socket para a interface %s...\n", nome_interfaces[i]);
     

@@ -50,7 +50,7 @@ int interface_imprime(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME])
     return num;
 }
 
-int interface_escolhe(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME], int quantidade)
+int interface_escolhe(int quantidade)
 {
     if (quantidade <= 0)
     {
