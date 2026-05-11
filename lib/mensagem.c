@@ -77,7 +77,7 @@ int mensagem_envia(int socket, struct mensagem_t *msg)
 
     // TODO: enviar o buffer pelo socket
     msg->crc = crc8_gera(msg->dados, msg->tamanho);
-    
+
     // TODO: serializar a mensagem em um buffer
     unsigned char *buffer = mensagem_serializa(msg);
     printf("%s %ld\n", buffer, sizeof(buffer));
@@ -94,28 +94,29 @@ int mensagem_recebe(int socket, struct mensagem_t *msg)
 {
     if (!msg)
         return -1;
-    
+
     unsigned char buffer[sizeof(struct mensagem_t)];
-    
+
     unsigned char bytes_lidos = recv(socket, buffer, sizeof(buffer), 0);
-    
+
     if (bytes_lidos <= 0)
         return -1;
-    
+
     int offset = 0;
     msg->marcador_inicio = buffer[offset++];
     msg->tamanho = buffer[offset++];
     msg->sequencia = buffer[offset++];
     msg->tipo = buffer[offset++];
-    
+
     memcpy(msg->dados, buffer + offset, MAX_DADOS);
     offset += MAX_DADOS;
-    
+
     msg->crc = buffer[offset];
-    
+
+    // validação - início da mensagem
     if (msg->marcador_inicio != MSG_MARCADOR_INICIO)
         return 0;
-    
+
     return (int)bytes_lidos;
 }
 
