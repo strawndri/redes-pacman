@@ -16,7 +16,12 @@ struct mensagem_t *mensagem_cria(unsigned char tamanho,
     msg->sequencia = 0; // TODO: calcular depois
     msg->tipo = tipo;
     msg->crc = 0; // TODO: calcular depois
-    memcpy(msg->dados, dados, tamanho);
+
+    // envio de mesagens que possuem dados
+    if (tamanho > 0 && dados != NULL)
+        memcpy(msg->dados, dados, tamanho);
+    else
+        memset(msg->dados, 0, MAX_DADOS); // TODO: posteriormente substituir, tendo em vista que o tamanho dos dados precisa variar
 
     return msg;
 }
@@ -85,7 +90,7 @@ int mensagem_envia(int socket, struct mensagem_t *msg)
     // TODO: implementar para-e-espera
     int bytes_enviados = send(socket, buffer, sizeof(struct mensagem_t), 0);
 
-    mensagem_imprime(msg);
+    // mensagem_imprime(msg);
 
     return bytes_enviados;
 }
