@@ -2,8 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #include "mensagem.h"
+
+long long timestamp()
+{
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    return tp.tv_sec * 1000 + tp.tv_usec / 1000;
+}
 
 struct mensagem_t *mensagem_cria(unsigned char tamanho,
                                  enum tipo_msg_t tipo, unsigned char *dados)
@@ -85,44 +93,51 @@ int mensagem_envia(int socket, struct mensagem_t *msg)
 
     // TODO: serializar a mensagem em um buffer
     unsigned char *buffer = mensagem_serializa(msg);
-    printf("%s %ld\n", buffer, sizeof(buffer));
 
     // TODO: implementar para-e-espera
     int bytes_enviados = send(socket, buffer, sizeof(struct mensagem_t), 0);
 
-    // mensagem_imprime(msg);
+    free(buffer);
 
     return bytes_enviados;
 }
 
-int mensagem_recebe(int socket, struct mensagem_t *msg)
+int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
 {
     if (!msg)
         return -1;
 
+    long long comeco = timestamp();
+    struct timeval timeout = {.tv_sec = timeoutMillis / 1000, .tv_usec = (timeoutMillis % 1000) * 1000};
+    setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+
     unsigned char buffer[sizeof(struct mensagem_t)];
 
-    unsigned char bytes_lidos = recv(socket, buffer, sizeof(buffer), 0);
+    do
+    {
+        int bytes_lidos = recv(socket, buffer, sizeof(buffer), 0);
+        if (bytes_lidos > 0)
+        {
+            // TODO: validação de início
+            if (buffer[0] == MSG_MARCADOR_INICIO)
+            {
+                int offset = 0;
+                msg->marcador_inicio = buffer[offset++];
+                msg->tamanho = buffer[offset++];
+                msg->sequencia = buffer[offset++];
+                msg->tipo = buffer[offset++];
 
-    if (bytes_lidos <= 0)
-        return -1;
+                memcpy(msg->dados, buffer + offset, MAX_DADOS);
+                offset += MAX_DADOS;
 
-    int offset = 0;
-    msg->marcador_inicio = buffer[offset++];
-    msg->tamanho = buffer[offset++];
-    msg->sequencia = buffer[offset++];
-    msg->tipo = buffer[offset++];
+                msg->crc = buffer[offset];
 
-    memcpy(msg->dados, buffer + offset, MAX_DADOS);
-    offset += MAX_DADOS;
+                return (int)bytes_lidos;
+            }
+        }
+    } while (timestamp() - comeco <= timeoutMillis);
 
-    msg->crc = buffer[offset];
-
-    // validação - início da mensagem
-    if (msg->marcador_inicio != MSG_MARCADOR_INICIO)
-        return 0;
-
-    return (int)bytes_lidos;
+    return -1;
 }
 
 void mensagem_imprime(struct mensagem_t *msg)

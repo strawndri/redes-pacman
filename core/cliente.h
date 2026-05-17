@@ -3,11 +3,7 @@
 
 #include "../lib/mensagem.h"
 
-// inicialização
-void cliente_inicializacao(int socket);
-
-// envio de movimento
-void cliente_envia_mov(int socket, enum tipo_msg_t mov);
+unsigned char cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, int seq_c);
 
 void cliente_executa(int socket);
 
