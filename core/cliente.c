@@ -62,6 +62,52 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
         }
     }
 
+    FILE *arquivo = NULL;
+    int recebendo_arquivo = 1;
+
+    // aguarda servidor enviar arquivo
+    while (recebendo_arquivo)
+    {   
+        // deu timeout -> nenhum arquivo foi enviado
+        if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) <= 0)
+            break;
+
+        // crc diferente
+        if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
+        {
+            struct mensagem_t *nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
+            mensagem_envia(socket, nack);
+            free(nack);
+            continue;
+        }
+
+        struct mensagem_t *ack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
+        mensagem_envia(socket, ack);
+        free(ack);
+
+        if (msg_get.sequencia != *seq_s_esperada)
+            continue;
+
+        if (msg_get.tipo == MSG_TXT && !arquivo)
+            arquivo = fopen("1.txt", "wb");
+
+        // escreve arquivo
+        if ((msg_get.tipo == MSG_TXT) && arquivo)
+            fwrite(msg_get.dados, 1, msg_get.tamanho, arquivo);
+
+        // acabou o arquivo
+        if (msg_get.tipo == MSG_FIM)
+        {
+            if (arquivo)
+            {
+                fclose(arquivo);
+                arquivo = NULL;
+                printf("pastilha recebida\n");
+            }
+            recebendo_arquivo = 0;
+        }
+    }
+    
     *seq_c = (*seq_c + 1) % 64;
 }
 
