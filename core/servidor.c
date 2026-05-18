@@ -5,6 +5,17 @@
 #include "servidor.h"
 #include "../lib/mensagem.h"
 
+void servidor_envia_arquivo(int socket, char *caminho,
+    enum tipo_msg_t tipo, unsigned char *seq)
+{
+    FILE *file = fopen(caminho, "rb");
+    if (!file)
+        return;
+
+    printf("enviando o arquivo %s...\n", caminho);
+}
+
+
 void servidor_executa(int socket)
 {
     printf("executando em modo servidor\n");
@@ -15,7 +26,7 @@ void servidor_executa(int socket)
 
     char mapa_teste[3][3] = {
         {'0', '0', '0'},
-        {'0', 'P', '0'},
+        {'0', 'P', '1'},
         {'0', '0', '0'}};
 
     int pac_x = 1;     // coluna
@@ -102,6 +113,31 @@ void servidor_executa(int socket)
                             pac_y = y;
                             mapa_teste[pac_y][pac_x] = 'P';
                         }
+                    }
+
+                    // pacman pegou a pastila
+                    char pastilha = mapa_teste[pac_y][pac_x];
+
+                    if (pastilha == '1' || pastilha == '2')
+                    {
+                        char caminho[32];
+                        sprintf(caminho, "assets/%c.txt", pastilha);
+                        printf(".txt\n");
+                        servidor_envia_arquivo(socket, caminho, MSG_TXT, &seq_s);
+                    }
+                    else if (pastilha == '3' || pastilha == '4')
+                    {
+                        char caminho[32];
+                        sprintf(caminho, "assets/%c.jpg", pastilha);
+                        printf(".jpg\n");
+                        servidor_envia_arquivo(socket, caminho, MSG_JPG, &seq_s);
+                    }
+                    else if (pastilha == '5' || pastilha == '6')
+                    {
+                        char caminho[32];
+                        sprintf(caminho, "assets/%c.mp4", pastilha);
+                        printf(".mp4\n");
+                        servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
                     }
 
                     seq_c_esperada = (seq_c_esperada + 1) % 64;
