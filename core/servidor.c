@@ -87,6 +87,7 @@ void servidor_executa(int socket)
     int pac_x = 1;     // coluna
     int pac_y = 1;     // linha
     char mapa_str[16]; // ira enviar o mapa
+    char pastilha;
 
     struct mensagem_t msg_get;
 
@@ -164,7 +165,7 @@ void servidor_executa(int socket)
                         if (x >= 0 && x <= 2 && y >= 0 && y <= 2)
                         {
                             // pacman pegou a pastila
-                            char pastilha = mapa_teste[y][x];
+                            pastilha = mapa_teste[y][x];
         
                             mapa_teste[pac_y][pac_x] = '0';
                             pac_x = x;
