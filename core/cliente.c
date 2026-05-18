@@ -81,12 +81,14 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
             continue;
         }
 
-        struct mensagem_t *ack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
+        struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
         mensagem_envia(socket, ack);
         free(ack);
 
         if (msg_get.sequencia != *seq_s_esperada)
             continue;
+
+        *seq_s_esperada = (*seq_s_esperada + 1) % 64;
 
         if (msg_get.tipo == MSG_TXT && !arquivo)
             arquivo = fopen("1.txt", "wb");

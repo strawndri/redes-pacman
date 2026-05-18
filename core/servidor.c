@@ -166,28 +166,6 @@ void servidor_executa(int socket)
                             // pacman pegou a pastila
                             char pastilha = mapa_teste[y][x];
         
-                            if (pastilha == '1' || pastilha == '2')
-                            {
-                                char caminho[32];
-                                sprintf(caminho, "assets/%c.txt", pastilha);
-                                printf(".txt\n");
-                                servidor_envia_arquivo(socket, caminho, MSG_TXT, &seq_s);
-                            }
-                            else if (pastilha == '3' || pastilha == '4')
-                            {
-                                char caminho[32];
-                                sprintf(caminho, "assets/%c.jpg", pastilha);
-                                printf(".jpg\n");
-                                servidor_envia_arquivo(socket, caminho, MSG_JPG, &seq_s);
-                            }
-                            else if (pastilha == '5' || pastilha == '6')
-                            {
-                                char caminho[32];
-                                sprintf(caminho, "assets/%c.mp4", pastilha);
-                                printf(".mp4\n");
-                                servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
-                            }
-
                             mapa_teste[pac_y][pac_x] = '0';
                             pac_x = x;
                             pac_y = y;
@@ -203,6 +181,28 @@ void servidor_executa(int socket)
                         mapa_teste[0][0], mapa_teste[0][1], mapa_teste[0][2],
                         mapa_teste[1][0], mapa_teste[1][1], mapa_teste[1][2],
                         mapa_teste[2][0], mapa_teste[2][1], mapa_teste[2][2]);
+
+                if (pastilha == '1' || pastilha == '2')
+                {
+                    char caminho[32];
+                    sprintf(caminho, "assets/%c.txt", pastilha);
+                    printf(".txt\n");
+                    servidor_envia_arquivo(socket, caminho, MSG_TXT, &seq_s);
+                }
+                else if (pastilha == '3' || pastilha == '4')
+                {
+                    char caminho[32];
+                    sprintf(caminho, "assets/%c.jpg", pastilha);
+                    printf(".jpg\n");
+                    servidor_envia_arquivo(socket, caminho, MSG_JPG, &seq_s);
+                }
+                else if (pastilha == '5' || pastilha == '6')
+                {
+                    char caminho[32];
+                    sprintf(caminho, "assets/%c.mp4", pastilha);
+                    printf(".mp4\n");
+                    servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
+                }
 
                 struct mensagem_t *msg_send = mensagem_cria(strlen(mapa_str), MSG_VISUAL, (unsigned char *)mapa_str, seq_s);
                 int ack_get = 0;
