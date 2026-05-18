@@ -14,14 +14,14 @@ long long timestamp()
 }
 
 struct mensagem_t *mensagem_cria(unsigned char tamanho,
-                                 enum tipo_msg_t tipo, unsigned char *dados)
+                                 enum tipo_msg_t tipo, unsigned char *dados, unsigned char seq)
 {
     struct mensagem_t *msg;
     msg = malloc(sizeof(struct mensagem_t));
 
     msg->marcador_inicio = MSG_MARCADOR_INICIO;
     msg->tamanho = tamanho;
-    msg->sequencia = 0; // TODO: calcular depois
+    msg->sequencia = seq;
     msg->tipo = tipo;
     msg->crc = 0; // TODO: calcular depois
 
@@ -59,26 +59,10 @@ unsigned char *mensagem_serializa(struct mensagem_t *msg)
     if (!msg)
         return NULL;
 
-    unsigned char *buffer;
-    int offset = 0;
+    unsigned char *buffer = malloc(sizeof(struct mensagem_t));
 
-    buffer = malloc(sizeof(struct mensagem_t));
-
-    memcpy(buffer + offset, &msg->marcador_inicio, 1);
-    offset++;
-    memcpy(buffer + offset, &msg->tamanho, 1);
-    offset++;
-
-    memcpy(buffer + offset, &msg->sequencia, 1);
-    offset++;
-
-    memcpy(buffer + offset, &msg->tipo, 1);
-    offset++;
-
-    memcpy(buffer + offset, msg->dados, MAX_DADOS);
-    offset += MAX_DADOS;
-
-    memcpy(buffer + offset, &msg->crc, 1);
+    // TODO: copia a struct inteira para o buffer
+    memcpy(buffer, msg, sizeof(struct mensagem_t));
 
     return buffer;
 }
@@ -121,17 +105,8 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
             // TODO: validação de início
             if (buffer[0] == MSG_MARCADOR_INICIO)
             {
-                int offset = 0;
-                msg->marcador_inicio = buffer[offset++];
-                msg->tamanho = buffer[offset++];
-                msg->sequencia = buffer[offset++];
-                msg->tipo = buffer[offset++];
-
-                memcpy(msg->dados, buffer + offset, MAX_DADOS);
-                offset += MAX_DADOS;
-
-                msg->crc = buffer[offset];
-
+                // TODO: copia os dados do buffer diretamente para a struct
+                memcpy(msg, buffer, sizeof(struct mensagem_t));
                 return (int)bytes_lidos;
             }
         }

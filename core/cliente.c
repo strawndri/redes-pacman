@@ -5,8 +5,8 @@
 #include "cliente.h"
 #include "../lib/mensagem.h"
 
-// TODO: atualmente apenas para o mapa
-unsigned char cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, int seq_c)
+// atualmente apenas para o mapa
+void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned char *seq_c, unsigned char *seq_s_esperada)
 {
     // TODO: envia mensagem
     int ack_get = 0;
@@ -18,11 +18,10 @@ unsigned char cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, int
 
         if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) > 0)
         {
-            if (msg_get.tipo == MSG_ACK && msg_get.sequencia == seq_c)
-            {
-                printf("Retornou ACK para meu pedido\n");
+            if (msg_get.tipo == MSG_NACK)
+                mensagem_envia(socket, msg_send);
+            else if (msg_get.tipo == MSG_ACK && msg_get.sequencia == *seq_c)
                 ack_get = 1;
-            }
         }
     }
 
@@ -35,42 +34,48 @@ unsigned char cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, int
     {
         if (mensagem_recebe(socket, &msg_get, TIME_OUT_GET) > 0)
         {
-            // TODO: enviar nack
             if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
+            {
+                struct mensagem_t *nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
+                mensagem_envia(socket, nack);
+                free(nack);
                 continue;
+            }
 
             if (msg_get.tipo == MSG_VISUAL)
             {
                 // TODO: manda ack - com o mesmo número de sequencia da mensagem
-                struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL);
-                ack->sequencia = msg_get.sequencia;
+                struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
                 mensagem_envia(socket, ack);
                 free(ack);
 
-                // TODO: imprime mapa
-                msg_get.dados[msg_get.tamanho] = '\0';
-                printf("\n\n\n%s\n", msg_get.dados);
+                if (msg_get.sequencia == *seq_s_esperada)
+                {
+                    // TODO: imprime mapa
+                    msg_get.dados[msg_get.tamanho] = '\0';
+                    printf("\n\n\n%s\n", msg_get.dados);
+                    *seq_s_esperada = (*seq_s_esperada + 1) % 64;
+                }
+
                 mapa = 1;
             }
         }
     }
 
-    // TODO: fazer tratativa do loop - sequência
-    return seq_c + 1;
+    *seq_c = (*seq_c + 1) % 64;
 }
 
 void cliente_executa(int socket)
 {
     printf("executando em modo cliente\n");
 
-    // TODO: sequência das mensagens do cliente - Precisa implementar
+    // TODO: validação com base na sequência
     unsigned char seq_c = 0;
+    unsigned char seq_s_esperado = 0;
 
     // TODO: inicializando o jogo
-    struct mensagem_t *msg_ini = mensagem_cria(0, MSG_INICIO, NULL);
-    msg_ini->sequencia = seq_c;
-
-    seq_c = cliente_stop_and_wait(socket, msg_ini, seq_c);
+    struct mensagem_t *msg_ini = mensagem_cria(0, MSG_INICIO, NULL, seq_c);
+    cliente_stop_and_wait(socket, msg_ini, &seq_c, &seq_s_esperado);
 
     while (1)
     {
@@ -78,7 +83,6 @@ void cliente_executa(int socket)
         scanf(" %c", &tecla);
 
         enum tipo_msg_t tipo_mov;
-        int fim = 0;
 
         switch (tecla)
         {
@@ -95,16 +99,13 @@ void cliente_executa(int socket)
             tipo_mov = MSG_MOV_DIR;
             break;
         default:
-            continue;
+            tipo_mov = MSG_ERRO;
+            break;
         }
 
-        if (fim)
-            break;
-
-        struct mensagem_t *msg_mov = mensagem_cria(0, tipo_mov, NULL);
-        msg_mov->sequencia = seq_c;
-
-        seq_c = cliente_stop_and_wait(socket, msg_mov, seq_c);
+        // TODO: enviando movimentação
+        struct mensagem_t *msg_mov = mensagem_cria(0, tipo_mov, NULL, seq_c);
+        cliente_stop_and_wait(socket, msg_mov, &seq_c, &seq_s_esperado);
     }
 
     printf("jogo finalizado\n");

@@ -29,9 +29,9 @@ enum tipo_msg_t
 struct mensagem_t
 {
     unsigned char marcador_inicio;  // 01111110
-    unsigned char tamanho;          // tamanho da região de dados (0-31)
-    unsigned char sequencia;        // número da sequência (0-63)
-    unsigned char tipo;             // tipo da mensagem (definidos num ENUM)
+    unsigned short tamanho : 5;     // tamanho da região de dados (0-31)
+    unsigned short sequencia : 6;   // número da sequência (0-63)
+    unsigned short tipo : 5;        // tipo da mensagem (definidos num ENUM)
     unsigned char dados[MAX_DADOS]; // área de dados
     unsigned char crc;              // método de detecção de erros
 };
@@ -40,7 +40,7 @@ struct mensagem_t
 long long timestamp();
 
 struct mensagem_t *mensagem_cria(unsigned char tamanho,
-                                 enum tipo_msg_t tipo, unsigned char *dados);
+                                 enum tipo_msg_t tipo, unsigned char *dados, unsigned char seq);
 
 int mensagem_envia(int socket, struct mensagem_t *msg);
 

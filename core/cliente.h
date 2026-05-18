@@ -3,7 +3,7 @@
 
 #include "../lib/mensagem.h"
 
-unsigned char cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, int seq_c);
+void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned char *seq_c, unsigned char *seq_s_esperada);
 
 void cliente_executa(int socket);
 
