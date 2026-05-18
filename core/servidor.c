@@ -120,7 +120,8 @@ void servidor_executa(int socket)
                     int moveu = 0;
                     int x = pac_x;
                     int y = pac_y;
-
+                    pastilha = 0;
+                    
                     switch (msg_get.tipo)
                     {
                     case MSG_INICIO:
@@ -183,6 +184,27 @@ void servidor_executa(int socket)
                         mapa_teste[1][0], mapa_teste[1][1], mapa_teste[1][2],
                         mapa_teste[2][0], mapa_teste[2][1], mapa_teste[2][2]);
 
+
+                struct mensagem_t *msg_send = mensagem_cria(strlen(mapa_str), MSG_VISUAL, (unsigned char *)mapa_str, seq_s);
+                int ack_get = 0;
+                struct mensagem_t msg_get;
+
+                while (!ack_get)
+                {
+                    mensagem_envia(socket, msg_send);
+
+                    if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) > 0)
+                    {
+                        if (msg_get.tipo == MSG_NACK)
+                            mensagem_envia(socket, msg_send);
+                        if (msg_get.tipo == MSG_ACK && msg_get.sequencia == seq_s)
+                            ack_get = 1;
+                    }
+                }
+
+                free(msg_send);
+                seq_s = (seq_s + 1) % 64;
+
                 if (pastilha == '1' || pastilha == '2')
                 {
                     char caminho[32];
@@ -204,26 +226,6 @@ void servidor_executa(int socket)
                     printf(".mp4\n");
                     servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
                 }
-
-                struct mensagem_t *msg_send = mensagem_cria(strlen(mapa_str), MSG_VISUAL, (unsigned char *)mapa_str, seq_s);
-                int ack_get = 0;
-                struct mensagem_t msg_get;
-
-                while (!ack_get)
-                {
-                    mensagem_envia(socket, msg_send);
-
-                    if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) > 0)
-                    {
-                        if (msg_get.tipo == MSG_NACK)
-                            mensagem_envia(socket, msg_send);
-                        if (msg_get.tipo == MSG_ACK && msg_get.sequencia == seq_s)
-                            ack_get = 1;
-                    }
-                }
-
-                free(msg_send);
-                seq_s = (seq_s + 1) % 64;
             }
         }
     }
