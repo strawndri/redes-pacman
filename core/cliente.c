@@ -8,7 +8,7 @@
 // atualmente apenas para o mapa
 void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned char *seq_c, unsigned char *seq_s_esperada)
 {
-    // TODO: envia mensagem
+    // envia mensagem
     int ack_get = 0;
     struct mensagem_t msg_get;
 
@@ -27,7 +27,7 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
 
     free(msg_send);
 
-    // TODO: aguarda recebimento do mapa
+    // aguarda recebimento do mapa
     int mapa = 0;
 
     while (!mapa)
@@ -44,14 +44,14 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
 
             if (msg_get.tipo == MSG_VISUAL)
             {
-                // TODO: manda ack - com o mesmo número de sequencia da mensagem
+                // manda ack - com o mesmo número de sequencia da mensagem
                 struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
                 mensagem_envia(socket, ack);
                 free(ack);
 
                 if (msg_get.sequencia == *seq_s_esperada)
                 {
-                    // TODO: imprime mapa
+                    // imprime mapa
                     msg_get.dados[msg_get.tamanho] = '\0';
                     printf("\n\n\n%s\n", msg_get.dados);
                     *seq_s_esperada = (*seq_s_esperada + 1) % 64;
@@ -69,11 +69,11 @@ void cliente_executa(int socket)
 {
     printf("executando em modo cliente\n");
 
-    // TODO: validação com base na sequência
+    // validação com base na sequência
     unsigned char seq_c = 0;
     unsigned char seq_s_esperado = 0;
 
-    // TODO: inicializando o jogo
+    // inicializando o jogo
     struct mensagem_t *msg_ini = mensagem_cria(0, MSG_INICIO, NULL, seq_c);
     cliente_stop_and_wait(socket, msg_ini, &seq_c, &seq_s_esperado);
 
@@ -103,7 +103,7 @@ void cliente_executa(int socket)
             break;
         }
 
-        // TODO: enviando movimentação
+        // enviando movimentação
         struct mensagem_t *msg_mov = mensagem_cria(0, tipo_mov, NULL, seq_c);
         cliente_stop_and_wait(socket, msg_mov, &seq_c, &seq_s_esperado);
     }

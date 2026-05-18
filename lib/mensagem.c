@@ -23,7 +23,7 @@ struct mensagem_t *mensagem_cria(unsigned char tamanho,
     msg->tamanho = tamanho;
     msg->sequencia = seq;
     msg->tipo = tipo;
-    msg->crc = 0; // TODO: calcular depois
+    msg->crc = 0;
 
     // envio de mesagens que possuem dados
     if (tamanho > 0 && dados != NULL)
@@ -60,8 +60,6 @@ unsigned char *mensagem_serializa(struct mensagem_t *msg)
         return NULL;
 
     unsigned char *buffer = malloc(sizeof(struct mensagem_t));
-
-    // TODO: copia a struct inteira para o buffer
     memcpy(buffer, msg, sizeof(struct mensagem_t));
 
     return buffer;
@@ -72,13 +70,9 @@ int mensagem_envia(int socket, struct mensagem_t *msg)
     if (!msg)
         return -1;
 
-    // TODO: enviar o buffer pelo socket
     msg->crc = crc8_gera(msg->dados, msg->tamanho);
-
-    // TODO: serializar a mensagem em um buffer
     unsigned char *buffer = mensagem_serializa(msg);
 
-    // TODO: implementar para-e-espera
     int bytes_enviados = send(socket, buffer, sizeof(struct mensagem_t), 0);
 
     free(buffer);
@@ -102,10 +96,10 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
         int bytes_lidos = recv(socket, buffer, sizeof(buffer), 0);
         if (bytes_lidos > 0)
         {
-            // TODO: validação de início
+            // validação de início
             if (buffer[0] == MSG_MARCADOR_INICIO)
             {
-                // TODO: copia os dados do buffer diretamente para a struct
+                // copia os dados do buffer diretamente para a struct
                 memcpy(msg, buffer, sizeof(struct mensagem_t));
                 return (int)bytes_lidos;
             }

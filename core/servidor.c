@@ -9,7 +9,7 @@ void servidor_executa(int socket)
 {
     printf("executando em modo servidor\n");
 
-    // TODO: validação com base na sequência
+    // validação com base na sequência
     unsigned char seq_s = 0;
     unsigned char seq_c_esperada = 0;
 
@@ -43,7 +43,7 @@ void servidor_executa(int socket)
                 msg_get.tipo == MSG_MOV_ESQ ||
                 msg_get.tipo == MSG_ERRO)
             {
-                // TODO: manda ack - com o mesmo número de sequencia da mensagem
+                // manda ack - com o mesmo número de sequencia da mensagem
                 struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
                 mensagem_envia(socket, ack);
                 free(ack);
@@ -57,7 +57,7 @@ void servidor_executa(int socket)
                     switch (msg_get.tipo)
                     {
                     case MSG_INICIO:
-                        printf("inciando jogo - mapa\n");
+                        printf("iniciando jogo - mapa\n");
                         moveu = 1;
                         break;
 
@@ -107,7 +107,7 @@ void servidor_executa(int socket)
                     seq_c_esperada = (seq_c_esperada + 1) % 64;
                 }
 
-                sprintf(mapa_str, "%c%c%c\n%c%c%c\n%c%c%c",
+                sprintf(mapa_str, "%c%c%c\n%c%c%c\n%c%c%c",     
                         mapa_teste[0][0], mapa_teste[0][1], mapa_teste[0][2],
                         mapa_teste[1][0], mapa_teste[1][1], mapa_teste[1][2],
                         mapa_teste[2][0], mapa_teste[2][1], mapa_teste[2][2]);
