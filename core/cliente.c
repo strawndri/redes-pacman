@@ -95,7 +95,7 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
             arquivo = fopen(msg_get.dados, "wb");
 
         // escreve arquivo
-        if ((msg_get.tipo == MSG_TXT) && arquivo)
+        if ((msg_get.tipo == MSG_DADOS) && arquivo)
             fwrite(msg_get.dados, 1, msg_get.tamanho, arquivo);
 
         // acabou o arquivo
