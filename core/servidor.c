@@ -14,22 +14,28 @@ void servidor_envia_arquivo(int socket, char *caminho,
 
     unsigned char buf[MAX_DADOS];
 
-    enum tipo_msg_t t;
     int total_lido;
     int first = 1;
 
     printf("enviando arquivo: %s\n", caminho);
+
+    total_lido = fread(buf, 1, MAX_DADOS, file);
     
     // lendo do arquivo e adicionando ao buffer
-    while ((total_lido = fread(buf, 1, MAX_DADOS, file)) > 0)
-    {
+    while (total_lido > 0)
+    {   
+        struct mensagem_t *msg_arquivo;
+        
         if (first)
-            t = tipo;
+        {
+            msg_arquivo = mensagem_cria(32, tipo, caminho, *seq);
+            first = 0;
+        }
         else
-            t = MSG_DADOS;
-
-        printf("total lido %d\n", total_lido);
-        struct mensagem_t *msg_arquivo = mensagem_cria(total_lido, t, buf, *seq);
+        {
+            msg_arquivo = mensagem_cria(total_lido, MSG_DADOS, buf, *seq);    
+            total_lido = fread(buf, 1, MAX_DADOS, file);
+        }
 
         int ack_get = 0;
         struct mensagem_t resp;

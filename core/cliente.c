@@ -90,8 +90,9 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
 
         *seq_s_esperada = (*seq_s_esperada + 1) % 64;
 
+        // cria arquivo
         if (msg_get.tipo == MSG_TXT && !arquivo)
-            arquivo = fopen("1.txt", "wb");
+            arquivo = fopen(msg_get.dados, "wb");
 
         // escreve arquivo
         if ((msg_get.tipo == MSG_TXT) && arquivo)
