@@ -69,11 +69,20 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
     while (recebendo_arquivo)
     {   
         // deu timeout -> nenhum arquivo foi enviado
-        if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) <= 0)
-            break;
+        int ret = mensagem_recebe(socket, &msg_get, TIME_OUT_SEND);
+            printf("mensagem_recebe retornou: %d\n", ret);
+            
+            if (ret <= 0)
+                break;
 
+        int crc = crc8_gera(msg_get.dados, msg_get.tamanho) ;
+
+        printf("> tipo=%d seq=%d tamanho=%d crc_recebido=%d crc_calculado=%d\n",
+                msg_get.tipo, msg_get.sequencia, msg_get.tamanho,
+                msg_get.crc, crc);
+        
         // crc diferente
-        if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
+        if (crc != msg_get.crc)
         {
             struct mensagem_t *nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
             mensagem_envia(socket, nack);
@@ -91,7 +100,7 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
         *seq_s_esperada = (*seq_s_esperada + 1) % 64;
 
         // cria arquivo
-        if (msg_get.tipo == MSG_TXT && !arquivo)
+        if ((msg_get.tipo == MSG_TXT || msg_get.tipo == MSG_JPG || msg_get.tipo == MSG_MP4) && !arquivo)
             arquivo = fopen(msg_get.dados, "wb");
 
         // escreve arquivo

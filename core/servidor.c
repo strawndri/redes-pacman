@@ -15,30 +15,38 @@ void servidor_envia_arquivo(int socket, char *caminho,
     unsigned char buf[MAX_DADOS];
 
     int total_lido;
-    int first = 1;
 
     printf("enviando arquivo: %s\n", caminho);
 
-    total_lido = fread(buf, 1, MAX_DADOS, file);
+    // envia nome do arquivo
+    struct mensagem_t *msg_nome = mensagem_cria(strlen(caminho) + 1, tipo, caminho, *seq);
+
+    int ack_get = 0;
+    struct mensagem_t resp;
+
+    while (!ack_get)
+    {
+        mensagem_envia(socket, msg_nome);
+
+        if (mensagem_recebe(socket, &resp, TIME_OUT_SEND) > 0)
+        {
+            if (resp.tipo == MSG_NACK)
+                continue;
+            if (resp.tipo == MSG_ACK && resp.sequencia == *seq)
+                ack_get = 1;
+        }
+    }
+
+    free(msg_nome);
+    *seq = (*seq + 1) % 64;
     
     // lendo do arquivo e adicionando ao buffer
-    while (total_lido > 0)
+    while ((total_lido = fread(buf, 1, MAX_DADOS, file)) > 0)
     {   
-        struct mensagem_t *msg_arquivo;
-        
-        if (first)
-        {
-            msg_arquivo = mensagem_cria(32, tipo, caminho, *seq);
-            first = 0;
-        }
-        else
-        {
-            msg_arquivo = mensagem_cria(total_lido, MSG_DADOS, buf, *seq);    
-            total_lido = fread(buf, 1, MAX_DADOS, file);
-        }
+        struct mensagem_t *msg_arquivo = msg_arquivo = mensagem_cria(total_lido, MSG_DADOS, buf, *seq);    
+        printf("total lido1: %d\n", total_lido);
 
-        int ack_get = 0;
-        struct mensagem_t resp;
+        ack_get = 0;
 
         while (!ack_get)
         {
@@ -59,8 +67,7 @@ void servidor_envia_arquivo(int socket, char *caminho,
 
     // indica que o arquivo foi enviado por completo
     struct mensagem_t *fim = mensagem_cria(0, MSG_FIM, NULL, *seq);
-    int ack_get = 0;
-    struct mensagem_t resp;
+    ack_get = 0;
 
     while (!ack_get)
     {
