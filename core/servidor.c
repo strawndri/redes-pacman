@@ -12,6 +12,10 @@ void servidor_envia_arquivo(int socket, char *caminho,
     if (!file)
         return;
 
+    // extrai a pasta e deixa apenas o nome do arquivo
+    char *nome_arquivo = strrchr(caminho, '/');
+    nome_arquivo = nome_arquivo ? nome_arquivo + 1 : caminho;
+
     unsigned char buf[MAX_DADOS];
 
     int total_lido;
@@ -19,7 +23,7 @@ void servidor_envia_arquivo(int socket, char *caminho,
     printf("enviando arquivo: %s\n", caminho);
 
     // envia nome do arquivo
-    struct mensagem_t *msg_nome = mensagem_cria(strlen(caminho) + 1, tipo, caminho, *seq);
+    struct mensagem_t *msg_nome = mensagem_cria(strlen(caminho) + 1, tipo, nome_arquivo, *seq);
 
     int ack_get = 0;
     struct mensagem_t resp;
@@ -44,7 +48,6 @@ void servidor_envia_arquivo(int socket, char *caminho,
     while ((total_lido = fread(buf, 1, MAX_DADOS, file)) > 0)
     {   
         struct mensagem_t *msg_arquivo = msg_arquivo = mensagem_cria(total_lido, MSG_DADOS, buf, *seq);    
-        printf("total lido1: %d\n", total_lido);
 
         ack_get = 0;
 
@@ -93,9 +96,9 @@ void servidor_executa(int socket)
     unsigned char seq_c_esperada = 0;
 
     char mapa_teste[3][3] = {
-        {'0', '0', '0'},
-        {'0', 'P', '1'},
-        {'0', '0', '0'}};
+        {'0', '4', '0'},
+        {'1', 'P', '3'},
+        {'0', '2', '0'}};
 
     int pac_x = 1;     // coluna
     int pac_y = 1;     // linha
@@ -222,21 +225,18 @@ void servidor_executa(int socket)
                 {
                     char caminho[32];
                     sprintf(caminho, "assets/%c.txt", pastilha);
-                    printf(".txt\n");
                     servidor_envia_arquivo(socket, caminho, MSG_TXT, &seq_s);
                 }
                 else if (pastilha == '3' || pastilha == '4')
                 {
                     char caminho[32];
                     sprintf(caminho, "assets/%c.jpg", pastilha);
-                    printf(".jpg\n");
                     servidor_envia_arquivo(socket, caminho, MSG_JPG, &seq_s);
                 }
                 else if (pastilha == '5' || pastilha == '6')
                 {
                     char caminho[32];
                     sprintf(caminho, "assets/%c.mp4", pastilha);
-                    printf(".mp4\n");
                     servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
                 }
             }

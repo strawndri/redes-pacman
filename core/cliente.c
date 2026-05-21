@@ -69,20 +69,11 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
     while (recebendo_arquivo)
     {   
         // deu timeout -> nenhum arquivo foi enviado
-        int ret = mensagem_recebe(socket, &msg_get, TIME_OUT_SEND);
-            printf("mensagem_recebe retornou: %d\n", ret);
-            
-            if (ret <= 0)
-                break;
+        if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) <= 0)
+            break;
 
-        int crc = crc8_gera(msg_get.dados, msg_get.tamanho) ;
-
-        printf("> tipo=%d seq=%d tamanho=%d crc_recebido=%d crc_calculado=%d\n",
-                msg_get.tipo, msg_get.sequencia, msg_get.tamanho,
-                msg_get.crc, crc);
-        
         // crc diferente
-        if (crc != msg_get.crc)
+        if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
         {
             struct mensagem_t *nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
             mensagem_envia(socket, nack);
