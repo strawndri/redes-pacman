@@ -3,9 +3,10 @@
 
 #define MSG_MARCADOR_INICIO 0b01111110
 #define MAX_DADOS 31
+#define TAM_MAPA 40
 
-#define TIME_OUT_SEND 1000 // 1 segundo (teste)
-#define TIME_OUT_GET 10000 // 10 segundos (teste)
+#define TIME_OUT_SEND 100
+#define TIME_OUT_GET 100
 
 enum tipo_msg_t
 {
@@ -39,8 +40,7 @@ struct mensagem_t
 // função auxiliar
 long long timestamp();
 
-struct mensagem_t *mensagem_cria(unsigned char tamanho,
-                                 enum tipo_msg_t tipo, unsigned char *dados, unsigned char seq);
+struct mensagem_t *mensagem_cria(unsigned char tamanho, enum tipo_msg_t tipo, unsigned char *dados, unsigned char seq);
 
 int mensagem_envia(int socket, struct mensagem_t *msg);
 
@@ -51,5 +51,7 @@ unsigned char crc8_gera(unsigned char *dados, unsigned char tamanho);
 unsigned char *mensagem_serializa(struct mensagem_t *msg);
 
 void mensagem_imprime(struct mensagem_t *msg);
+
+void mensagem_envia_sw(int socket, struct mensagem_t *msg, unsigned char *seq);
 
 #endif

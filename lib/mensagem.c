@@ -117,3 +117,25 @@ void mensagem_imprime(struct mensagem_t *msg)
     printf("mensagem: %d %d %d %d %d %s\n", msg->marcador_inicio, msg->tamanho,
            msg->sequencia, msg->tipo, msg->crc, msg->dados);
 }
+
+void mensagem_envia_sw(int socket, struct mensagem_t *msg, unsigned char *seq)
+{
+    int ack_get = 0;
+    struct mensagem_t msg_resp;
+
+    while (!ack_get)
+    {
+        mensagem_envia(socket, msg);
+
+        if (mensagem_recebe(socket, &msg_resp, TIME_OUT_SEND) > 0)
+        {
+            if (msg_resp.tipo == MSG_NACK)
+                continue;
+
+            if (msg_resp.tipo == MSG_ACK && msg_resp.sequencia == *seq)
+                ack_get = 1;
+        }
+    }
+
+    *seq = (*seq + 1) % 64;
+}
