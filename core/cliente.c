@@ -1,36 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "cliente.h"
 #include "../lib/mensagem.h"
 
-// atualmente apenas para o mapa
-void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned char *seq_c, unsigned char *seq_s_esperada)
+// aux - leitura de teclas no terminal
+void desliga_modo_jogo()
 {
-    // envia mensagem
-    int ack_get = 0;
+    tcsetattr(STDIN_FILENO, TCSANOW, &tecla_original);
+}
+
+void liga_modo_jogo()
+{
+    tcgetattr(STDIN_FILENO, &tecla_original);
+    atexit(desliga_modo_jogo);
+    struct termios tecla_jogo = tecla_original;
+    tecla_jogo.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &tecla_jogo);
+}
+
+// funções principais
+
+void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada)
+{
     struct mensagem_t msg_get;
+    int recebendo_mapa = 1;
+    char *buf = NULL;
+    int tam_atual = 0;
 
-    while (!ack_get)
-    {
-        mensagem_envia(socket, msg_send);
-
-        if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) > 0)
-        {
-            if (msg_get.tipo == MSG_NACK)
-                mensagem_envia(socket, msg_send);
-            else if (msg_get.tipo == MSG_ACK && msg_get.sequencia == *seq_c)
-                ack_get = 1;
-        }
-    }
-
-    free(msg_send);
-
-    // aguarda recebimento do mapa
-    int mapa = 0;
-
-    while (!mapa)
+    while (recebendo_mapa)
     {
         if (mensagem_recebe(socket, &msg_get, TIME_OUT_GET) > 0)
         {
@@ -42,37 +43,96 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
                 continue;
             }
 
-            if (msg_get.tipo == MSG_VISUAL)
+            struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
+            mensagem_envia(socket, ack);
+            free(ack);
+
+            if (msg_get.sequencia != *seq_s_esperada)
+                continue;
+
+            *seq_s_esperada = (*seq_s_esperada + 1) % 64;
+
+            if (msg_get.tipo == MSG_VISUAL || msg_get.tipo == MSG_DADOS)
             {
-                // manda ack - com o mesmo número de sequencia da mensagem
-                struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
-                mensagem_envia(socket, ack);
-                free(ack);
-
-                if (msg_get.sequencia == *seq_s_esperada)
+                // aumenta memória para salvar o mapa
+                char *temp = realloc(buf, tam_atual + msg_get.tamanho + 1);
+                if (temp == NULL)
                 {
-                    // imprime mapa
-                    msg_get.dados[msg_get.tamanho] = '\0';
-                    printf("\n\n\n%s\n", msg_get.dados);
-                    *seq_s_esperada = (*seq_s_esperada + 1) % 64;
+                    free(buf);
+                    exit(1);
                 }
+                buf = temp;
 
-                mapa = 1;
+                memcpy(buf + tam_atual, msg_get.dados, msg_get.tamanho);
+                tam_atual += msg_get.tamanho;
+            }
+            else if (msg_get.tipo == MSG_FIM)
+            {
+                if (buf)
+                {
+                    buf[tam_atual] = '\0'; // termina a string
+
+                    printf("\x1b[H"); // reescreve por cima do terminal
+
+                    // imprime mapa
+                    for (int i = 0; i < tam_atual; i++)
+                    {
+                        switch (buf[i])
+                        {
+                        case 'X':
+                            printf("▒▒");
+                            break;
+                        case '0':
+                            printf("  ");
+                            break;
+                        case 'P':
+                            printf("\x1b[1;33mᗧ \x1b[0m");
+                            break;
+                        case 'R':
+                            printf("📕");
+                            break;
+                        case 'B':
+                            printf("📘");
+                            break;
+                        case 'G':
+                            printf("📗");
+                            break;
+                        case 'Y':
+                            printf("📔");
+                            break;
+                        case '\n':
+                            printf("\n");
+                            break;
+                        default:
+                            if (buf[i] >= '1' && buf[i] <= '6')
+                                printf("🪙");
+                            else if (buf[i] != ' ')
+                                printf("%c ", buf[i]);
+                            break;
+                        }
+                    }
+                    printf("\n");
+
+                    free(buf);
+                }
+                recebendo_mapa = 0;
             }
         }
     }
+}
 
+void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
+{
+    struct mensagem_t msg_get;
     FILE *arquivo = NULL;
     int recebendo_arquivo = 1;
 
-    // aguarda servidor enviar arquivo
     while (recebendo_arquivo)
-    {   
+    {
         // deu timeout -> nenhum arquivo foi enviado
         if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) <= 0)
             break;
 
-        // crc diferente
         if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
         {
             struct mensagem_t *nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
@@ -92,7 +152,7 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
 
         // cria arquivo
         if ((msg_get.tipo == MSG_TXT || msg_get.tipo == MSG_JPG || msg_get.tipo == MSG_MP4) && !arquivo)
-            arquivo = fopen(msg_get.dados, "wb");
+            arquivo = fopen((const char *)msg_get.dados, "wb");
 
         // escreve arquivo
         if ((msg_get.tipo == MSG_DADOS) && arquivo)
@@ -110,26 +170,33 @@ void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned cha
             recebendo_arquivo = 0;
         }
     }
-    
-    *seq_c = (*seq_c + 1) % 64;
 }
 
 void cliente_executa(int socket)
 {
     printf("executando em modo cliente\n");
 
-    // validação com base na sequência
+    liga_modo_jogo();
+
     unsigned char seq_c = 0;
     unsigned char seq_s_esperado = 0;
 
-    // inicializando o jogo
+    // inicialização
     struct mensagem_t *msg_ini = mensagem_cria(0, MSG_INICIO, NULL, seq_c);
-    cliente_stop_and_wait(socket, msg_ini, &seq_c, &seq_s_esperado);
+    mensagem_envia_sw(socket, msg_ini, &seq_c);
+    free(msg_ini);
+
+    system("clear");
+
+    cliente_recebe_mapa(socket, &seq_s_esperado);
+    cliente_recebe_arquivo(socket, &seq_s_esperado);
 
     while (1)
     {
-        char tecla;
-        scanf(" %c", &tecla);
+        // garante que leia apenas a tecla selecionada no momento
+        tcflush(STDIN_FILENO, TCIFLUSH);
+
+        char tecla = getchar();
 
         enum tipo_msg_t tipo_mov;
 
@@ -147,14 +214,26 @@ void cliente_executa(int socket)
         case 'd':
             tipo_mov = MSG_MOV_DIR;
             break;
+        case 'q':
+            printf("cliente finalizou o jogo\n");
+            desliga_modo_jogo();
+            return;
         default:
             tipo_mov = MSG_ERRO;
             break;
         }
 
-        // enviando movimentação
+        if (tipo_mov == MSG_ERRO)
+            continue;
+
+        // envia movimentação
         struct mensagem_t *msg_mov = mensagem_cria(0, tipo_mov, NULL, seq_c);
-        cliente_stop_and_wait(socket, msg_mov, &seq_c, &seq_s_esperado);
+        mensagem_envia_sw(socket, msg_mov, &seq_c);
+        free(msg_mov);
+
+        // mapa atualizado e pastilha
+        cliente_recebe_mapa(socket, &seq_s_esperado);
+        cliente_recebe_arquivo(socket, &seq_s_esperado);
     }
 
     printf("jogo finalizado\n");

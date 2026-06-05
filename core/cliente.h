@@ -1,10 +1,14 @@
 #ifndef CLIENTE_H__
 #define CLIENTE_H__
 
-#include "../lib/mensagem.h"
-
-void cliente_stop_and_wait(int socket, struct mensagem_t *msg_send, unsigned char *seq_c, unsigned char *seq_s_esperada);
-
+void cliente_imprime_mapa(char *mapa);
+void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada);
+void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada);
 void cliente_executa(int socket);
+
+// aux
+struct termios tecla_original;
+void desliga_modo_jogo();
+void liga_modo_jogo();
 
 #endif
