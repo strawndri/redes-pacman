@@ -82,60 +82,52 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
     fclose(file);
 }
 
-void servidor_envia_mapa(int socket, char *mapa_str, unsigned char *seq)
+void servidor_envia_mapa(int socket, struct jogo_t *jogo, unsigned char *seq)
 {
-    int tamanho = strlen(mapa_str);
-    int lido = 0;
+    unsigned char buf[MAX_DADOS];
+    int pos = 0;
+    int primeira = 1;
 
     printf("enviando visualizacao do mapa\n");
-
-    unsigned char buf[MAX_DADOS];
-
-    int total_lido = (tamanho - lido > MAX_DADOS) ? MAX_DADOS : (tamanho - lido);
-    memcpy(buf, mapa_str + lido, total_lido);
-
-    // transferência pelo tipo VISUAL
-    struct mensagem_t *msg_visual = mensagem_cria(total_lido, MSG_VISUAL, buf, *seq);
-    mensagem_envia_sw(socket, msg_visual, seq);
-    free(msg_visual);
-
-    lido += total_lido;
-
-    while (lido < tamanho)
-    {
-        total_lido = (tamanho - lido > MAX_DADOS) ? MAX_DADOS : (tamanho - lido);
-        memcpy(buf, mapa_str + lido, total_lido);
-
-        // tranferência pelo tipo DADOS
-        struct mensagem_t *msg_dados = mensagem_cria(total_lido, MSG_DADOS, buf, *seq);
-        mensagem_envia_sw(socket, msg_dados, seq);
-        free(msg_dados);
-
-        lido += total_lido;
-    }
-
-    // indica que o arquivo foi enviado por completo
-    struct mensagem_t *fim = mensagem_cria(0, MSG_FIM, NULL, *seq);
-    mensagem_envia_sw(socket, fim, seq);
-    free(fim);
-}
-
-void servidor_visualizacao(char *buffer, struct jogo_t *jogo)
-{
-    // implementar campo de visão
-
-    int pos = 0;
 
     for (int i = 0; i < TAM_MAPA; i++)
     {
         for (int j = 0; j < TAM_MAPA; j++)
         {
-            buffer[pos++] = jogo->mapa[i][j];
-            buffer[pos++] = ' ';
+            buf[pos++] = jogo->mapa[i][j];
+
+            if (pos == MAX_DADOS)
+            {
+                struct mensagem_t *msg = mensagem_cria(MAX_DADOS, primeira ? MSG_VISUAL : MSG_DADOS, buf, *seq);
+                mensagem_envia_sw(socket, msg, seq);
+                free(msg);
+                pos = 0;
+                primeira = 0;
+            }
         }
-        buffer[pos++] = '\n';
+
+        buf[pos++] = '\n';
+
+        if (pos == MAX_DADOS)
+        {
+            struct mensagem_t *msg = mensagem_cria(MAX_DADOS, primeira ? MSG_VISUAL : MSG_DADOS, buf, *seq);
+            mensagem_envia_sw(socket, msg, seq);
+            free(msg);
+            pos = 0;
+            primeira = 0;
+        }
     }
-    buffer[pos++] = '\0';
+
+    if (pos > 0)
+    {
+        struct mensagem_t *msg = mensagem_cria(pos, primeira ? MSG_VISUAL : MSG_DADOS, buf, *seq);
+        mensagem_envia_sw(socket, msg, seq);
+        free(msg);
+    }
+
+    struct mensagem_t *fim = mensagem_cria(0, MSG_FIM, NULL, *seq);
+    mensagem_envia_sw(socket, fim, seq);
+    free(fim);
 }
 
 void servidor_executa(int socket)
@@ -238,36 +230,27 @@ void servidor_executa(int socket)
                         }
 
                         seq_c_esperada = (seq_c_esperada + 1) % 64;
-                    }
 
-                    // tamanho do arquivo do mapa (linhas * colunas) + '\n' + '\0'
-                    int tam_mapa = (TAM_MAPA * TAM_MAPA * 2) + TAM_MAPA + 1;
-                    char *mapa_str = malloc(tam_mapa * sizeof(char));
-                    if (!mapa_str)
-                        exit(1);
+                        servidor_envia_mapa(socket, &jogo, &seq_s);
 
-                    servidor_visualizacao(mapa_str, &jogo);
-                    servidor_envia_mapa(socket, mapa_str, &seq_s);
-
-                    free(mapa_str);
-
-                    if (pastilha >= '1' && pastilha <= '6')
-                    {
-                        char caminho[32];
-                        if (pastilha == '1' || pastilha == '2')
+                        if (pastilha >= '1' && pastilha <= '6')
                         {
-                            sprintf(caminho, "assets/%c.txt", pastilha);
-                            servidor_envia_arquivo(socket, caminho, MSG_TXT, &seq_s);
-                        }
-                        else if (pastilha == '3' || pastilha == '4')
-                        {
-                            sprintf(caminho, "assets/%c.jpg", pastilha);
-                            servidor_envia_arquivo(socket, caminho, MSG_JPG, &seq_s);
-                        }
-                        else if (pastilha == '5' || pastilha == '6')
-                        {
-                            sprintf(caminho, "assets/%c.mp4", pastilha);
-                            servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
+                            char caminho[32];
+                            if (pastilha == '1' || pastilha == '2')
+                            {
+                                sprintf(caminho, "assets/%c.txt", pastilha);
+                                servidor_envia_arquivo(socket, caminho, MSG_TXT, &seq_s);
+                            }
+                            else if (pastilha == '3' || pastilha == '4')
+                            {
+                                sprintf(caminho, "assets/%c.jpg", pastilha);
+                                servidor_envia_arquivo(socket, caminho, MSG_JPG, &seq_s);
+                            }
+                            else if (pastilha == '5' || pastilha == '6')
+                            {
+                                sprintf(caminho, "assets/%c.mp4", pastilha);
+                                servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
+                            }
                         }
                     }
                 }

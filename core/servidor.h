@@ -15,9 +15,7 @@ void servidor_executa(int socket);
 
 void servidor_carrega_csv(char *caminho, struct jogo_t *jogo);
 
-void servidor_visualizacao(char *buffer, struct jogo_t *jogo);
-
-void servidor_envia_mapa(int socket, char *mapa_str, unsigned char *seq);
+void servidor_envia_mapa(int socket, struct jogo_t *jogo, unsigned char *seq);
 void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, unsigned char *seq);
 
 #endif
