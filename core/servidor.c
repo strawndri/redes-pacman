@@ -3,49 +3,7 @@
 #include <string.h>
 
 #include "servidor.h"
-#include "../lib/mensagem.h"
-
-void servidor_carrega_csv(char *caminho, struct jogo_t *jogo)
-{
-    int mapa_padrao = 0;
-    FILE *file = fopen(caminho, "r");
-    if (!file)
-    {
-        mapa_padrao = 1;
-        file = fopen("assets/mapa_padrao.csv", "r");
-        if (!file)
-            exit(1);
-    }
-
-    char linha[256]; // limite de segurança
-    int i = 0;       // linha
-
-    while (fgets(linha, sizeof(linha), file) && i < TAM_MAPA)
-    {
-        int j = 0; // coluna
-        int k = 0; // índice de leitura
-
-        while (linha[k] != '\0' && linha[k] != '\n' && j < TAM_MAPA)
-        {
-            if (linha[k] != ';')
-            {
-                jogo->mapa[i][j] = linha[k];
-
-                if (!mapa_padrao && linha[k] == 'P')
-                {
-                    jogo->pac_x = j;
-                    jogo->pac_y = i;
-                }
-                j++;
-            }
-            k++;
-        }
-        i++;
-    }
-    fclose(file);
-
-    // se usar mapa padrão, implementar aleatoridade
-}
+#include "jogo.h"
 
 void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, unsigned char *seq)
 {
@@ -130,15 +88,13 @@ void servidor_envia_mapa(int socket, struct jogo_t *jogo, unsigned char *seq)
     free(fim);
 }
 
-void servidor_executa(int socket)
+void servidor_executa(int socket, char *caminho_mapa)
 {
     printf("executando em modo servidor\n");
 
     // inicializando jogo
     struct jogo_t jogo;
-    jogo.movimento = 0;
-
-    servidor_carrega_csv("assets/mapa_padrao.csv", &jogo);
+    jogo_carrega_mapa(caminho_mapa, &jogo);
 
     unsigned char seq_s = 0;
     unsigned char seq_c_esperada = 0;
@@ -169,88 +125,30 @@ void servidor_executa(int socket)
 
                 if (msg_get.sequencia == seq_c_esperada)
                 {
-                    int moveu = 0;
-                    int x = jogo.pac_x;
-                    int y = jogo.pac_y;
-                    pastilha = '0';
+                    pastilha = jogo_move_pacman(&jogo, msg_get.tipo);
+                    jogo_move_fantasmas(&jogo);
 
-                    switch (msg_get.tipo)
+                    seq_c_esperada = (seq_c_esperada + 1) % 64;
+
+                    servidor_envia_mapa(socket, &jogo, &seq_s);
+
+                    if (pastilha >= '1' && pastilha <= '6')
                     {
-                    case MSG_INICIO:
-                        printf("iniciando jogo - mapa\n");
-                        moveu = 1;
-                        break;
-
-                    case MSG_MOV_CIMA:
-                        printf("movimento: cima\n");
-                        y--;
-                        moveu = 1;
-                        break;
-
-                    case MSG_MOV_BAIXO:
-                        printf("movimento: baixo\n");
-                        y++;
-                        moveu = 1;
-                        break;
-
-                    case MSG_MOV_ESQ:
-                        printf("movimento: esquerda\n");
-                        x--;
-                        moveu = 1;
-                        break;
-
-                    case MSG_MOV_DIR:
-                        printf("movimento: direita\n");
-                        x++;
-                        moveu = 1;
-                        break;
-
-                    case MSG_ERRO:
-                        printf("tecla inválida\n");
-                        break;
-
-                    default:
-                        break;
-                    }
-
-                    if (moveu)
-                    {
-                        if (x >= 0 && x <= TAM_MAPA && y >= 0 && y <= TAM_MAPA)
+                        char caminho[32];
+                        if (pastilha == '1' || pastilha == '2')
                         {
-                            char casa_destino = jogo.mapa[y][x];
-                            if (casa_destino != 'X')
-                            {
-                                pastilha = casa_destino;
-
-                                jogo.mapa[jogo.pac_y][jogo.pac_x] = '0';
-                                jogo.pac_x = x;
-                                jogo.pac_y = y;
-                                jogo.mapa[jogo.pac_y][jogo.pac_x] = 'P';
-                            }
+                            sprintf(caminho, "assets/%c.txt", pastilha);
+                            servidor_envia_arquivo(socket, caminho, MSG_TXT, &seq_s);
                         }
-
-                        seq_c_esperada = (seq_c_esperada + 1) % 64;
-
-                        servidor_envia_mapa(socket, &jogo, &seq_s);
-
-                        if (pastilha >= '1' && pastilha <= '6')
+                        else if (pastilha == '3' || pastilha == '4')
                         {
-                            char caminho[32];
-                            if (pastilha == '1' || pastilha == '2')
-                            {
-                                sprintf(caminho, "assets/%c.txt", pastilha);
-                                servidor_envia_arquivo(socket, caminho, MSG_TXT, &seq_s);
-                            }
-                            else if (pastilha == '3' || pastilha == '4')
-                            {
-                                sprintf(caminho, "assets/%c.jpg", pastilha);
-                                servidor_envia_arquivo(socket, caminho, MSG_JPG, &seq_s);
-                            }
-                            else if (pastilha == '5' || pastilha == '6')
-                            {
-                                sprintf(caminho, "assets/%c.mp4", pastilha);
-                                servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
-                            }
+                            sprintf(caminho, "assets/%c.jpg", pastilha);
+                            servidor_envia_arquivo(socket, caminho, MSG_JPG, &seq_s);
+                        }
+                        else if (pastilha == '5' || pastilha == '6')
+                        {
+                            sprintf(caminho, "assets/%c.mp4", pastilha);
+                            servidor_envia_arquivo(socket, caminho, MSG_MP4, &seq_s);
                         }
                     }
                 }
