@@ -8,6 +8,8 @@
 #include "../lib/mensagem.h"
 
 // aux - leitura de teclas no terminal
+struct termios tecla_original;
+
 void desliga_modo_jogo()
 {
     tcsetattr(STDIN_FILENO, TCSANOW, &tecla_original);
