@@ -3,7 +3,6 @@
 
 #define MSG_MARCADOR_INICIO 0b01111110
 #define MAX_DADOS 31
-#define TAM_MAPA 40
 
 #define TIME_OUT_SEND 100
 #define TIME_OUT_GET 100
