@@ -124,19 +124,6 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
                 return (int)bytes_lidos;
             }
 
-            unsigned int n = msg->tamanho;
-            unsigned int w = 0;
-
-            for (unsigned int r = 0; r < n; r++)
-            {
-                msg->dados[w++] = msg->dados[r];
-
-                if ((msg->dados[r] == 0x88 || msg->dados[r] == 0x81) &&
-                    (r + 1 < n && msg->dados[r + 1] == 0xff))
-                    r++; // pula o 0xff inserido pelo emissor
-            }
-            msg->tamanho = (unsigned char)w;
-            return (int) bytes_lidos;
         }
     } while (timestamp() - comeco <= timeoutMillis);
 

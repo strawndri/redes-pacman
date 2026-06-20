@@ -29,13 +29,6 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
     {
         struct mensagem_t *msg_arquivo = msg_arquivo = mensagem_cria(total_lido, MSG_DADOS, buf, *seq);
         
-        printf("%d: enviando - dados ", msg_arquivo->sequencia);;
-        for (int i = 0; i < msg_arquivo->tamanho; i++)
-        {
-            printf("%02x ", msg_arquivo->dados[i]);
-        }
-        printf("\n");
-
         mensagem_envia_sw(socket, msg_arquivo, seq);
         free(msg_arquivo);
     }

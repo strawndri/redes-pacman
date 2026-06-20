@@ -163,13 +163,22 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
         // escreve arquivo
         if ((msg_get.tipo == MSG_DADOS) && arquivo)
-        {
-            fwrite(msg_get.dados, 1, msg_get.tamanho, arquivo);
-            printf("%d: escrevendo - dados: ", msg_get.sequencia);
-            for (int i = 0; i < msg_get.tamanho; i++) {
-                printf("%02x ", msg_get.dados[i]);
+        {   
+            // remove bytes 0xff inseridos pelo emissor
+            int n = msg_get.tamanho;
+            int w = 0;
+
+            for (int r = 0; r < n; r++)
+            {
+                msg_get.dados[w++] = msg_get.dados[r];
+
+                if ((msg_get.dados[r] == 0x88 || msg_get.dados[r] == 0x81) &&
+                    (r + 1 < n && msg_get.dados[r + 1] == 0xff))
+                    r++; // pula o 0xff inserido pelo emissor
             }
-            printf("\n");
+            msg_get.tamanho = (unsigned char)w;
+
+            fwrite(msg_get.dados, 1, msg_get.tamanho, arquivo);
         }
 
         // acabou o arquivo
@@ -179,7 +188,7 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
             {
                 fclose(arquivo);
                 arquivo = NULL;
-                printf("%s pastilha recebida\n", nome_arquivo);
+                printf("pastilha recebida\n");
             }
             recebendo_arquivo = 0;
         }
