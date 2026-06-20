@@ -105,6 +105,18 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
 
     unsigned char buffer[sizeof(struct mensagem_t)];
 
+    int tamanho = sizeof(buffer);
+    for (int i = 0; i < tamanho; i++)
+    {
+        // se o byte for 0xff, remove-o e desloca os demais bytes pra esquerda
+        if (buffer[0] == 0xff)
+        {
+            // desloca os demais bytes para a esquerda
+            memmove(buffer + i, buffer + i + 1, tamanho - i - 1);
+            tamanho--;
+        }
+    }
+    
     do
     {
         int bytes_lidos = recv(socket, buffer, sizeof(buffer), 0);
@@ -116,14 +128,6 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
                 // copia os dados do buffer diretamente para a struct
                 memcpy(msg, buffer, sizeof(struct mensagem_t));
                 return (int)bytes_lidos;
-            }
-
-            // se o byte for 0xff, remove-o e desloca os demais bytes pra esquerda
-            if (buffer[0] == 0xff)
-            {
-                // desloca os demais bytes para a esquerda
-                memmove(buffer, buffer + 1, bytes_lidos - 1);
-                bytes_lidos--;
             }
         }
     } while (timestamp() - comeco <= timeoutMillis);
