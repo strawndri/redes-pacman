@@ -27,23 +27,33 @@ struct mensagem_t *mensagem_cria(unsigned char tamanho,
 
     // envio de mesagens que possuem dados
     if (tamanho > 0 && dados != NULL)
-    {
+    {   
+        unsigned int n = 0;
         // verifica se há bytes 0x88 e 0x81 (VLAN)
-        for (int i = 0; i < tamanho; i++)
+        for (unsigned int i = 0; i < tamanho; i++)
         {   
+            if (n >= MAX_DADOS)
+                break;
+            
+            msg->dados[n++] = dados[i];
+        
             // se sim, incluimos o byte 0xff depois destes
             if (dados[i] == 0x88 || dados[i] == 0x81)
             {
-                // desloca os demais bytes para a direita
-                memmove(dados + i + 1, dados + i, tamanho - i - 1);
-                dados[i + 1] = 0xff;
-                tamanho++;
+                if (n >= MAX_DADOS)
+                    break;
+                msg->dados[n++] = 0xff;
             }
         }
-        memcpy(msg->dados, dados, tamanho);
+        msg->tamanho = (unsigned char)n;
+        if (n < MAX_DADOS)
+            memset(msg->dados + n, 0, MAX_DADOS - n);
     }
     else
+    {
+        msg->tamanho = 0;
         memset(msg->dados, 0, MAX_DADOS); // TODO: posteriormente substituir, tendo em vista que o tamanho dos dados precisa variar
+    }
 
     return msg;
 }
@@ -104,18 +114,6 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
     setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
     unsigned char buffer[sizeof(struct mensagem_t)];
-
-    int tamanho = sizeof(buffer);
-    for (int i = 0; i < tamanho; i++)
-    {
-        // se o byte for 0xff, remove-o e desloca os demais bytes pra esquerda
-        if (buffer[0] == 0xff)
-        {
-            // desloca os demais bytes para a esquerda
-            memmove(buffer + i, buffer + i + 1, tamanho - i - 1);
-            tamanho--;
-        }
-    }
     
     do
     {
@@ -129,6 +127,20 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
                 memcpy(msg, buffer, sizeof(struct mensagem_t));
                 return (int)bytes_lidos;
             }
+
+            unsigned int n = msg->tamanho;
+            unsigned int w = 0;
+
+            for (unsigned int r = 0; r < n; r++)
+            {
+                msg->dados[w++] = msg->dados[r];
+
+                if ((msg->dados[r] == 0x88 || msg->dados[r] == 0x81) &&
+                    (r + 1 < n && msg->dados[r + 1] == 0xff))
+                    r++; // pula o 0xff inserido pelo emissor
+            }
+            msg->tamanho = (unsigned char)w;
+            return (int) bytes_lidos;
         }
     } while (timestamp() - comeco <= timeoutMillis);
 
