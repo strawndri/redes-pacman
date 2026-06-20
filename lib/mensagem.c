@@ -27,7 +27,21 @@ struct mensagem_t *mensagem_cria(unsigned char tamanho,
 
     // envio de mesagens que possuem dados
     if (tamanho > 0 && dados != NULL)
+    {
+        // verifica se há bytes 0x88 e 0x81 (VLAN)
+        for (int i = 0; i < tamanho; i++)
+        {   
+            // se sim, incluimos o byte 0xff depois destes
+            if (dados[i] == 0x88 || dados[i] == 0x81)
+            {
+                // desloca os demais bytes para a direita
+                memmove(dados + i + 1, dados + i, tamanho - i - 1);
+                dados[i + 1] = 0xff;
+                tamanho++;
+            }
+        }
         memcpy(msg->dados, dados, tamanho);
+    }
     else
         memset(msg->dados, 0, MAX_DADOS); // TODO: posteriormente substituir, tendo em vista que o tamanho dos dados precisa variar
 
@@ -102,6 +116,14 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
                 // copia os dados do buffer diretamente para a struct
                 memcpy(msg, buffer, sizeof(struct mensagem_t));
                 return (int)bytes_lidos;
+            }
+
+            // se o byte for 0xff, remove-o e desloca os demais bytes pra esquerda
+            if (buffer[0] == 0xff)
+            {
+                // desloca os demais bytes para a esquerda
+                memmove(buffer, buffer + 1, bytes_lidos - 1);
+                bytes_lidos--;
             }
         }
     } while (timestamp() - comeco <= timeoutMillis);
