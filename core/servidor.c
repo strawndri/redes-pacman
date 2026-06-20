@@ -23,9 +23,9 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
     free(msg_nome);
 
     // lendo do arquivo e adicionando ao buffer
-    unsigned char buf[MAX_DADOS];
+    unsigned char buf[MAX_DADOS / 2];
     int total_lido;
-    while ((total_lido = fread(buf, 1, MAX_DADOS, file)) > 0)
+    while ((total_lido = fread(buf, 1, sizeof(buf), file)) > 0)
     {
         struct mensagem_t *msg_arquivo = msg_arquivo = mensagem_cria(total_lido, MSG_DADOS, buf, *seq);
         mensagem_envia_sw(socket, msg_arquivo, seq);
