@@ -28,9 +28,9 @@ struct mensagem_t *mensagem_cria(unsigned char tamanho,
     // envio de mesagens que possuem dados
     if (tamanho > 0 && dados != NULL)
     {   
-        unsigned int n = 0;
+        int n = 0;
         // verifica se há bytes 0x88 e 0x81 (VLAN)
-        for (unsigned int i = 0; i < tamanho; i++)
+        for (int i = 0; i < tamanho; i++)
         {   
             if (n >= MAX_DADOS)
                 break;
@@ -39,11 +39,7 @@ struct mensagem_t *mensagem_cria(unsigned char tamanho,
         
             // se sim, incluimos o byte 0xff depois destes
             if (dados[i] == 0x88 || dados[i] == 0x81)
-            {
-                if (n >= MAX_DADOS)
-                    break;
                 msg->dados[n++] = 0xff;
-            }
         }
         msg->tamanho = (unsigned char)n;
         if (n < MAX_DADOS)

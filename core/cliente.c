@@ -128,6 +128,7 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
     struct mensagem_t msg_get;
     FILE *arquivo = NULL;
     int recebendo_arquivo = 1;
+    const char *nome_arquivo;
 
     while (recebendo_arquivo)
     {
@@ -154,11 +155,22 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
         // cria arquivo
         if ((msg_get.tipo == MSG_TXT || msg_get.tipo == MSG_JPG || msg_get.tipo == MSG_MP4) && !arquivo)
-            arquivo = fopen((const char *)msg_get.dados, "wb");
+        {   
+            nome_arquivo = (const char*)msg_get.dados;
+            arquivo = fopen(nome_arquivo, "wb");
+            printf("arquivo --> %s, seq = %d\n", nome_arquivo, msg_get.sequencia);
+        }
 
         // escreve arquivo
         if ((msg_get.tipo == MSG_DADOS) && arquivo)
+        {
             fwrite(msg_get.dados, 1, msg_get.tamanho, arquivo);
+            printf("%d: escrevendo - dados: ", msg_get.sequencia);
+            for (int i = 0; i < msg_get.tamanho; i++) {
+                printf("%02x ", msg_get.dados[i]);
+            }
+            printf("\n");
+        }
 
         // acabou o arquivo
         if (msg_get.tipo == MSG_FIM)
@@ -167,7 +179,7 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
             {
                 fclose(arquivo);
                 arquivo = NULL;
-                printf("pastilha recebida\n");
+                printf("%s pastilha recebida\n", nome_arquivo);
             }
             recebendo_arquivo = 0;
         }
