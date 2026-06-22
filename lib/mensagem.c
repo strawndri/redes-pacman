@@ -146,7 +146,10 @@ void mensagem_envia_sw(int socket, struct mensagem_t *msg, unsigned char *seq)
         if (mensagem_recebe(socket, &msg_resp, TIME_OUT_SEND) > 0)
         {
             if (msg_resp.tipo == MSG_NACK)
+            {
+                log_mensagem(ENVIOU_MSG, msg, NULL, LOG_MSG); // escreve nack
                 continue;
+            }
 
             if (msg_resp.tipo == MSG_ACK && msg_resp.sequencia == *seq)
                 ack_get = 1;

@@ -198,8 +198,9 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
             {
                 fclose(arquivo);
                 arquivo = NULL;
-                recebendo_arquivo = 0;
             }
+            else
+                recebendo_arquivo = 0;
         }
 
         if (msg_get.tipo == MSG_VITORIA)
@@ -276,7 +277,6 @@ void cliente_executa(int socket)
         // mapa atualizado e pastilha
         cliente_recebe_mapa(socket, &seq_s_esperado);
         int status_jogo = cliente_recebe_arquivo(socket, &seq_s_esperado);
-        printf("recebeu... %d\n", status_jogo);
 
         if (status_jogo == 1)
         {
