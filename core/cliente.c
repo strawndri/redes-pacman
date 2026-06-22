@@ -128,6 +128,7 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
     struct mensagem_t msg_get;
     FILE *arquivo = NULL;
     int recebendo_arquivo = 1;
+    const char *nome_arquivo;
 
     while (recebendo_arquivo)
     {
@@ -154,11 +155,31 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
         // cria arquivo
         if ((msg_get.tipo == MSG_TXT || msg_get.tipo == MSG_JPG || msg_get.tipo == MSG_MP4) && !arquivo)
-            arquivo = fopen((const char *)msg_get.dados, "wb");
+        {   
+            nome_arquivo = (const char*)msg_get.dados;
+            arquivo = fopen(nome_arquivo, "wb");
+            printf("arquivo --> %s, seq = %d\n", nome_arquivo, msg_get.sequencia);
+        }
 
         // escreve arquivo
         if ((msg_get.tipo == MSG_DADOS) && arquivo)
+        {   
+            // remove bytes 0xff inseridos pelo emissor
+            int n = msg_get.tamanho;
+            int w = 0;
+
+            for (int r = 0; r < n; r++)
+            {
+                msg_get.dados[w++] = msg_get.dados[r];
+
+                if ((msg_get.dados[r] == 0x88 || msg_get.dados[r] == 0x81) &&
+                    (r + 1 < n && msg_get.dados[r + 1] == 0xff))
+                    r++; // pula o 0xff inserido pelo emissor
+            }
+            msg_get.tamanho = (unsigned char)w;
+
             fwrite(msg_get.dados, 1, msg_get.tamanho, arquivo);
+        }
 
         // acabou o arquivo
         if (msg_get.tipo == MSG_FIM)
