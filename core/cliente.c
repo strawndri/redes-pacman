@@ -130,14 +130,21 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
     struct mensagem_t msg_get;
     FILE *arquivo = NULL;
     int recebendo_arquivo = 1;
+    int iniciou_envio = 0;
     int status_jogo = 0;
     const char *nome_arquivo;
 
     while (recebendo_arquivo)
-    {
-        // deu timeout -> nenhum arquivo foi enviado
-        if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) <= 0)
-            break;
+    {   
+        if (mensagem_recebe(socket, &msg_get, TIME_OUT_GET) <= 0)
+        {   
+            // sem arquivo, então saí
+            if (!iniciou_envio) 
+                break;
+            else
+            // tenta novamente, cabo desconectado
+                continue;
+        }
 
         if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
         {
@@ -158,7 +165,8 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
         // cria arquivo
         if ((msg_get.tipo == MSG_TXT || msg_get.tipo == MSG_JPG || msg_get.tipo == MSG_MP4) && !arquivo)
-        {
+        {   
+            iniciou_envio = 1;
             nome_arquivo = (const char *)msg_get.dados;
             arquivo = fopen(nome_arquivo, "wb");
             printf("arquivo --> %s, seq = %d\r\n", nome_arquivo, msg_get.sequencia);
@@ -192,6 +200,7 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
                 fclose(arquivo);
                 arquivo = NULL;
                 printf("pastilha recebida\r\n");
+                recebendo_arquivo = 0;
             }
         }
 
