@@ -17,6 +17,8 @@ enum tipo_msg_t
     MSG_TXT = 5,
     MSG_JPG = 6,
     MSG_MP4 = 7,
+    MSG_DERROTA = 8,
+    MSG_VITORIA = 9,
     MSG_MOV_DIR = 10,
     MSG_MOV_ESQ = 11,
     MSG_MOV_CIMA = 12,
