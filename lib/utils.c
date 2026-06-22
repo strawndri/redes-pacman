@@ -77,7 +77,6 @@ FILE *log_cria()
     if (!fd)
         return NULL;
 
-    fclose(fd);
     return fd;
 }
 
