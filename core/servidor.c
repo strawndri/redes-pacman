@@ -54,17 +54,16 @@ void servidor_envia_mapa(int socket, struct jogo_t *jogo, unsigned char *seq)
     int pac_y = jogo->pacman.y;
     int raio = jogo->raio_visao;
 
-    for (int i = pac_y - raio; i <= pac_y + raio; i++)
+    for (int i = 0; i < TAM_MAPA; i++)
     {
-        for (int j = pac_x - raio; j <= pac_x + raio; j++)
+        for (int j = 0; j < TAM_MAPA; j++)
         {
-            char casa;
+            int distancia_x = j - pac_x;
+            int distancia_y = i - pac_y;
 
-            if (i < 0 || i >= TAM_MAPA || j < 0 || j >= TAM_MAPA)
-                casa = VAZIO;
-            else
-                casa = jogo->mapa[i][j];
+            int dentro_raio = (distancia_x >= -raio && distancia_x <= raio) && (distancia_y >= -raio && distancia_y <= raio);
 
+            char casa = dentro_raio ? jogo->mapa[i][j] : VAZIO;
             buf[pos++] = casa;
 
             if (pos == MAX_DADOS)
