@@ -5,6 +5,7 @@
 #include <sys/time.h>
 
 #include "mensagem.h"
+#include "utils.h"
 
 long long timestamp()
 {
@@ -97,6 +98,8 @@ int mensagem_envia(int socket, struct mensagem_t *msg)
 
     free(buffer);
 
+    log_mensagem(ENVIOU_MSG, msg, NULL, LOG_MSG);
+
     return bytes_enviados;
 }
 
@@ -121,6 +124,7 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
             {
                 // copia os dados do buffer diretamente para a struct
                 memcpy(msg, buffer, sizeof(struct mensagem_t));
+                log_mensagem(RECEBEU_MSG, msg, NULL, LOG_MSG);
                 return (int)bytes_lidos;
             }
 
@@ -128,15 +132,6 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis)
     } while (timestamp() - comeco <= timeoutMillis);
 
     return -1;
-}
-
-void mensagem_imprime(struct mensagem_t *msg)
-{
-    if (!msg)
-        return;
-
-    printf("mensagem: %d %d %d %d %d %s\n", msg->marcador_inicio, msg->tamanho,
-           msg->sequencia, msg->tipo, msg->crc, msg->dados);
 }
 
 void mensagem_envia_sw(int socket, struct mensagem_t *msg, unsigned char *seq)

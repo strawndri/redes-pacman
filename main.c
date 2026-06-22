@@ -36,13 +36,17 @@ int main(int argc, char *argv[])
 
     socket = raw_socket_cria(nome_interfaces[i]);
 
+    FILE *log_file;
     if (modo_opcao == MODO_SERVIDOR)
     {
+        log_file = log_cria();
         char *caminho_mapa = (argc >= 3) ? argv[2] : NULL;
         servidor_executa(socket, caminho_mapa);
     }
     else
         cliente_executa(socket);
+
+    fclose(log_file);
 
     return 0;
 }

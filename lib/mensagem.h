@@ -51,8 +51,6 @@ unsigned char crc8_gera(unsigned char *dados, unsigned char tamanho);
 
 unsigned char *mensagem_serializa(struct mensagem_t *msg);
 
-void mensagem_imprime(struct mensagem_t *msg);
-
 void mensagem_envia_sw(int socket, struct mensagem_t *msg, unsigned char *seq);
 
 #endif

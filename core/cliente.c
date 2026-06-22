@@ -169,7 +169,6 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
             iniciou_envio = 1;
             nome_arquivo = (const char *)msg_get.dados;
             arquivo = fopen(nome_arquivo, "wb");
-            printf("arquivo --> %s, seq = %d\r\n", nome_arquivo, msg_get.sequencia);
         }
 
         // escreve arquivo
@@ -199,7 +198,6 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
             {
                 fclose(arquivo);
                 arquivo = NULL;
-                printf("pastilha recebida\r\n");
                 recebendo_arquivo = 0;
             }
         }

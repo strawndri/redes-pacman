@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "../lib/utils.h"
 #include "servidor.h"
 #include "jogo.h"
 
@@ -16,7 +17,9 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
     char *nome_arquivo = strrchr(caminho, '/');
     nome_arquivo = nome_arquivo ? nome_arquivo + 1 : caminho;
 
-    printf("enviando arquivo: %s\n", caminho);
+    char txt[50];
+    snprintf(txt, sizeof(txt), "enviando arquivo %s...", caminho);
+    log_mensagem(ARQUIVO, NULL, txt, LOG_TXT);
 
     // envia nome do arquivo
     struct mensagem_t *msg_nome = mensagem_cria(strlen(nome_arquivo) + 1, tipo, (unsigned char *)nome_arquivo, *seq);
@@ -47,8 +50,6 @@ void servidor_envia_mapa(int socket, struct jogo_t *jogo, unsigned char *seq)
     unsigned char buf[MAX_DADOS];
     int pos = 0;
     int primeira = 1;
-
-    printf("enviando visualizacao do mapa de raio %d\n", jogo->raio_visao);
 
     int pac_x = jogo->pacman.x;
     int pac_y = jogo->pacman.y;
