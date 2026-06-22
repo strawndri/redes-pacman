@@ -74,17 +74,20 @@ void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada)
                 {
                     buf[tam_atual] = '\0'; // termina a string
 
-                    printf("\x1b[H"); // reescreve por cima do terminal
+                    printf("\x1b[H\x1b[J");
 
                     // imprime mapa
                     for (int i = 0; i < tam_atual; i++)
                     {
                         switch (buf[i])
                         {
+                        case '\r':
+                            break;
                         case 'X':
                             printf("▒▒");
                             break;
                         case '0':
+                        case ' ':
                             printf("  ");
                             break;
                         case 'P':
@@ -103,7 +106,7 @@ void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada)
                             printf("📔");
                             break;
                         case '\n':
-                            printf("\n");
+                            printf("\r\n");
                             break;
                         default:
                             if (buf[i] >= '1' && buf[i] <= '6')
@@ -113,8 +116,7 @@ void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada)
                             break;
                         }
                     }
-                    printf("\n");
-
+                    printf("\r\n");
                     free(buf);
                 }
                 recebendo_mapa = 0;
@@ -123,11 +125,12 @@ void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada)
     }
 }
 
-void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
+int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 {
     struct mensagem_t msg_get;
     FILE *arquivo = NULL;
     int recebendo_arquivo = 1;
+    int status_jogo = 0;
     const char *nome_arquivo;
 
     while (recebendo_arquivo)
@@ -155,15 +158,15 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
         // cria arquivo
         if ((msg_get.tipo == MSG_TXT || msg_get.tipo == MSG_JPG || msg_get.tipo == MSG_MP4) && !arquivo)
-        {   
-            nome_arquivo = (const char*)msg_get.dados;
+        {
+            nome_arquivo = (const char *)msg_get.dados;
             arquivo = fopen(nome_arquivo, "wb");
-            printf("arquivo --> %s, seq = %d\n", nome_arquivo, msg_get.sequencia);
+            printf("arquivo --> %s, seq = %d\r\n", nome_arquivo, msg_get.sequencia);
         }
 
         // escreve arquivo
         if ((msg_get.tipo == MSG_DADOS) && arquivo)
-        {   
+        {
             // remove bytes 0xff inseridos pelo emissor
             int n = msg_get.tamanho;
             int w = 0;
@@ -188,16 +191,28 @@ void cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
             {
                 fclose(arquivo);
                 arquivo = NULL;
-                printf("pastilha recebida\n");
+                printf("pastilha recebida\r\n");
             }
+        }
+
+        if (msg_get.tipo == MSG_VITORIA)
+        {
+            status_jogo = 1;
+            recebendo_arquivo = 0;
+        }
+        if (msg_get.tipo == MSG_DERROTA)
+        {
+            status_jogo = -1;
             recebendo_arquivo = 0;
         }
     }
+
+    return status_jogo;
 }
 
 void cliente_executa(int socket)
 {
-    printf("executando em modo cliente\n");
+    printf("executando em modo cliente\r\n");
 
     liga_modo_jogo();
 
@@ -237,10 +252,6 @@ void cliente_executa(int socket)
         case 'd':
             tipo_mov = MSG_MOV_DIR;
             break;
-        case 'q':
-            printf("cliente finalizou o jogo\n");
-            desliga_modo_jogo();
-            return;
         default:
             tipo_mov = MSG_ERRO;
             break;
@@ -256,8 +267,21 @@ void cliente_executa(int socket)
 
         // mapa atualizado e pastilha
         cliente_recebe_mapa(socket, &seq_s_esperado);
-        cliente_recebe_arquivo(socket, &seq_s_esperado);
+        int status_jogo = cliente_recebe_arquivo(socket, &seq_s_esperado);
+
+        if (status_jogo == 1)
+        {
+            printf("vitória\r\n");
+            break;
+        }
+        if (status_jogo == -1)
+        {
+            printf("derrota\r\n");
+            break;
+        }
     }
 
-    printf("jogo finalizado\n");
+    desliga_modo_jogo();
+    close(socket);
+    printf("jogo finalizado\r\n");
 }
