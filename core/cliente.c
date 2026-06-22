@@ -271,19 +271,25 @@ void cliente_executa(int socket)
         struct mensagem_t *msg_mov = mensagem_cria(0, tipo_mov, NULL, seq_c);
         mensagem_envia_sw(socket, msg_mov, &seq_c);
         free(msg_mov);
+        char command[256];
 
         // mapa atualizado e pastilha
         cliente_recebe_mapa(socket, &seq_s_esperado);
         int status_jogo = cliente_recebe_arquivo(socket, &seq_s_esperado);
+        printf("recebeu... %d\n", status_jogo);
 
         if (status_jogo == 1)
         {
             printf("vitória\r\n");
+            snprintf(command, sizeof(command), "xdg-open %s", "win.jpg");
+            system(command);
             break;
         }
         if (status_jogo == -1)
         {
             printf("derrota\r\n");
+            snprintf(command, sizeof(command), "xdg-open %s", "game_over.jpg");
+            system(command);
             break;
         }
     }
