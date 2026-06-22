@@ -10,11 +10,12 @@ void jogo_carrega_mapa(char *caminho, struct jogo_t *jogo)
     int mapa_padrao = 0;
     FILE *file = NULL;
 
-    // inicialização geral
-    jogo->pacman.vida = 1;
+    // inicialização do jogo
     jogo->pacman.pastilhas = 0;
     jogo->movimento = 0;
-    jogo->raio_visão = 1;
+    jogo->raio_visao = 1;
+    jogo->vitoria = 0;
+    jogo->colisao = 0;
 
     if (caminho != NULL)
         file = fopen(caminho, "r");
@@ -44,18 +45,21 @@ void jogo_carrega_mapa(char *caminho, struct jogo_t *jogo)
 
                 if (!mapa_padrao)
                 {
-                    if (linha[k] == 'P')
+                    if (linha[k] == PACMAN)
                     {
                         jogo->pacman.x = j;
                         jogo->pacman.y = i;
                     }
-                    else if (linha[k] == 'R' || linha[k] == 'B' || linha[k] == 'G' || linha[k] == 'Y')
+                    else if (linha[k] == FANTASMA_VERMELHO ||
+                             linha[k] == FANTASMA_AZUL ||
+                             linha[k] == FANTASMA_VERDE ||
+                             linha[k] == FANTASMA_AMARELO)
                     {
                         jogo->fantasmas[index_ghost].tipo = linha[k];
                         jogo->fantasmas[index_ghost].x = j;
                         jogo->fantasmas[index_ghost].y = i;
                         jogo->fantasmas[index_ghost].dir_atual = 0;
-                        jogo->fantasmas[index_ghost].piso = '0';
+                        jogo->fantasmas[index_ghost].piso = VAZIO;
                         jogo->fantasmas[index_ghost].decisao = 0;
                         index_ghost++;
                     }
@@ -70,9 +74,11 @@ void jogo_carrega_mapa(char *caminho, struct jogo_t *jogo)
 
     if (mapa_padrao)
     {
-        char itens[TOTAL_ITENS] = {'P', 'R', 'B', 'G', 'Y', '1', '2', '3', '4', '5', '6'};
+        char itens[TOTAL_ITENS] = {PACMAN, FANTASMA_VERMELHO, FANTASMA_AZUL,
+                                   FANTASMA_VERDE, FANTASMA_AMARELO,
+                                   '1', '2', '3', '4', '5', '6'};
 
-        for (int i = 0; i < TOTAL_ITENS; i++)
+        for (int w = 0; w < TOTAL_ITENS; w++)
         {
             int colocado = 0;
 
@@ -81,23 +87,26 @@ void jogo_carrega_mapa(char *caminho, struct jogo_t *jogo)
                 int x = rand() % TAM_MAPA;
                 int y = rand() % TAM_MAPA;
 
-                if (jogo->mapa[y][x] == '0')
+                if (jogo->mapa[y][x] == VAZIO)
                 {
-                    jogo->mapa[y][x] = itens[i];
+                    jogo->mapa[y][x] = itens[w];
                     colocado = 1;
 
-                    if (itens[i] == 'P')
+                    if (itens[w] == PACMAN)
                     {
                         jogo->pacman.x = x;
                         jogo->pacman.y = y;
                     }
-                    else if (itens[i] == 'R' || itens[i] == 'B' || itens[i] == 'G' || itens[i] == 'Y')
+                    else if (itens[w] == FANTASMA_VERMELHO ||
+                             itens[w] == FANTASMA_AZUL ||
+                             itens[w] == FANTASMA_VERDE ||
+                             itens[w] == FANTASMA_AMARELO)
                     {
-                        jogo->fantasmas[index_ghost].tipo = itens[i];
+                        jogo->fantasmas[index_ghost].tipo = itens[w];
                         jogo->fantasmas[index_ghost].x = x;
                         jogo->fantasmas[index_ghost].y = y;
                         jogo->fantasmas[index_ghost].dir_atual = 0;
-                        jogo->fantasmas[index_ghost].piso = '0';
+                        jogo->fantasmas[index_ghost].piso = VAZIO;
                         jogo->fantasmas[index_ghost].decisao = 0;
                         index_ghost++;
                     }
@@ -107,53 +116,33 @@ void jogo_carrega_mapa(char *caminho, struct jogo_t *jogo)
     }
 }
 
-char jogo_move_pacman(struct jogo_t *jogo, int direcao)
+int jogo_verifica_colisao(struct jogo_t *jogo)
 {
-    int x = jogo->pacman.x;
-    int y = jogo->pacman.y;
-    int moveu = 1;
-
-    if (direcao == MSG_MOV_CIMA)
-        y--;
-    else if (direcao == MSG_MOV_BAIXO)
-        y++;
-    else if (direcao == MSG_MOV_ESQ)
-        x--;
-    else if (direcao == MSG_MOV_DIR)
-        x++;
-    else
-        moveu = 0;
-
-    if (moveu)
+    for (int i = 0; i < QUANTIDADE_FANTASMA; i++)
     {
-        if (x >= 0 && x <= TAM_MAPA && y >= 0 && y <= TAM_MAPA)
+        if (jogo->pacman.x == jogo->fantasmas[i].x &&
+            jogo->pacman.y == jogo->fantasmas[i].y)
         {
-            char casa_destino = jogo->mapa[y][x];
-            if (casa_destino != 'X')
-            {
-                jogo->mapa[jogo->pacman.y][jogo->pacman.x] = '0';
-                jogo->pacman.x = x;
-                jogo->pacman.y = y;
-                jogo->mapa[jogo->pacman.y][jogo->pacman.x] = 'P';
-
-                jogo->movimento++;
-                if (jogo->movimento % 5 == 0)
-                    jogo->raio_visão++;
-
-                if (casa_destino >= '1' && casa_destino <= '6')
-                    jogo->pacman.pastilhas++;
-                if (casa_destino == 'R' || casa_destino == 'B' || casa_destino == 'G' || casa_destino == 'Y')
-                    jogo->pacman.vida = 0;
-            }
-
-            return casa_destino;
+            jogo->colisao = 1;
+            return 1;
         }
     }
 
-    return '0';
+    return 0;
 }
 
-int valida_movimento(struct jogo_t *jogo, struct fantasmas_t *fantasma, int direcao)
+int jogo_verifica_vitoria(struct jogo_t *jogo)
+{
+    if (jogo->pacman.pastilhas >= PASTILHAS_NECESSARIAS)
+    {
+        jogo->vitoria = 1;
+        return 1;
+    }
+
+    return 0;
+}
+
+int valida_movimento_fantasma(struct jogo_t *jogo, struct fantasmas_t *fantasma, int direcao)
 {
     int x = fantasma->x;
     int y = fantasma->y;
@@ -167,19 +156,21 @@ int valida_movimento(struct jogo_t *jogo, struct fantasmas_t *fantasma, int dire
     if (direcao == DIREITA)
         x++;
 
-    // validação: tamanho do mapa
-    if (x < 0 || x > TAM_MAPA || y < 0 || y > TAM_MAPA)
+    if (x < 0 || x >= TAM_MAPA || y < 0 || y >= TAM_MAPA)
         return 0;
 
     char casa_destino = jogo->mapa[y][x];
 
-    // validação: colisão com outros fantasmas/paredes
-    if (casa_destino == 'X' || casa_destino == 'R' || casa_destino == 'B' || casa_destino == 'G' || casa_destino == 'Y')
+    if (casa_destino == PAREDE ||
+        casa_destino == FANTASMA_VERMELHO ||
+        casa_destino == FANTASMA_AZUL ||
+        casa_destino == FANTASMA_VERDE ||
+        casa_destino == FANTASMA_AMARELO)
         return 0;
 
     jogo->mapa[fantasma->y][fantasma->x] = fantasma->piso;
 
-    if (casa_destino != 'P')
+    if (casa_destino != PACMAN)
         fantasma->piso = casa_destino;
 
     fantasma->x = x;
@@ -187,10 +178,62 @@ int valida_movimento(struct jogo_t *jogo, struct fantasmas_t *fantasma, int dire
     fantasma->dir_atual = direcao;
     jogo->mapa[y][x] = fantasma->tipo;
 
-    if (casa_destino == 'P')
-        jogo->pacman.vida = 0;
+    if (casa_destino == PACMAN)
+        jogo->colisao = 1;
 
     return 1;
+}
+
+char jogo_move_pacman(struct jogo_t *jogo, int direcao)
+{
+    int x = jogo->pacman.x;
+    int y = jogo->pacman.y;
+
+    if (direcao == MSG_MOV_CIMA)
+        y--;
+    else if (direcao == MSG_MOV_BAIXO)
+        y++;
+    else if (direcao == MSG_MOV_ESQ)
+        x--;
+    else if (direcao == MSG_MOV_DIR)
+        x++;
+    else
+        return VAZIO;
+
+    if (x < 0 || x >= TAM_MAPA || y < 0 || y >= TAM_MAPA)
+        return VAZIO;
+
+    char casa_destino = jogo->mapa[y][x];
+
+    if (casa_destino == PAREDE)
+    {
+        jogo->movimento++;
+        if (jogo->movimento % 5 == 0)
+            jogo->raio_visao++;
+        return VAZIO;
+    }
+
+    if (casa_destino == FANTASMA_VERMELHO || casa_destino == FANTASMA_AZUL ||
+        casa_destino == FANTASMA_VERDE || casa_destino == FANTASMA_AMARELO)
+    {
+        return VAZIO;
+    }
+
+    jogo->mapa[jogo->pacman.y][jogo->pacman.x] = VAZIO;
+
+    jogo->pacman.x = x;
+    jogo->pacman.y = y;
+
+    if (casa_destino >= PASTILHA_MIN && casa_destino <= PASTILHA_MAX)
+        jogo->pacman.pastilhas++;
+
+    jogo->mapa[y][x] = PACMAN;
+
+    jogo->movimento++;
+    if (jogo->movimento % 5 == 0)
+        jogo->raio_visao++;
+
+    return casa_destino;
 }
 
 void jogo_move_fantasmas(struct jogo_t *jogo)
@@ -204,7 +247,6 @@ void jogo_move_fantasmas(struct jogo_t *jogo)
         int direita;
         int esquerda;
 
-        // lógica de direcionamento dos fantasmas
         if (frente == CIMA)
         {
             tras = BAIXO;
@@ -230,75 +272,55 @@ void jogo_move_fantasmas(struct jogo_t *jogo)
             esquerda = BAIXO;
         }
 
-        // regra da mão esquerda
-        if (fantasma->tipo == 'R')
+        if (fantasma->tipo == FANTASMA_VERMELHO)
         {
-            if (valida_movimento(jogo, fantasma, frente))
+            if (valida_movimento_fantasma(jogo, fantasma, frente))
                 continue;
-            if (valida_movimento(jogo, fantasma, esquerda))
+            if (valida_movimento_fantasma(jogo, fantasma, esquerda))
                 continue;
-            if (valida_movimento(jogo, fantasma, direita))
+            if (valida_movimento_fantasma(jogo, fantasma, direita))
                 continue;
-            valida_movimento(jogo, fantasma, esquerda);
+            valida_movimento_fantasma(jogo, fantasma, tras);
         }
 
-        // regra da mão direita
-        if (fantasma->tipo == 'B')
+        if (fantasma->tipo == FANTASMA_AZUL)
         {
-            if (valida_movimento(jogo, fantasma, frente))
+            if (valida_movimento_fantasma(jogo, fantasma, frente))
                 continue;
-            if (valida_movimento(jogo, fantasma, direita))
+            if (valida_movimento_fantasma(jogo, fantasma, direita))
                 continue;
-            if (valida_movimento(jogo, fantasma, esquerda))
+            if (valida_movimento_fantasma(jogo, fantasma, esquerda))
                 continue;
-            valida_movimento(jogo, fantasma, esquerda);
+            valida_movimento_fantasma(jogo, fantasma, tras);
         }
 
-        // alterna direita esquerda a cada decisão
-        if (fantasma->tipo == 'G')
+        if (fantasma->tipo == FANTASMA_VERDE)
         {
-            if (valida_movimento(jogo, fantasma, frente))
+            if (valida_movimento_fantasma(jogo, fantasma, frente))
                 continue;
 
-            // lógica de decisão
-            int primeiro_lado;
-            int segundo_lado;
+            int primeiro_lado = fantasma->decisao ? esquerda : direita;
+            int segundo_lado = fantasma->decisao ? direita : esquerda;
 
-            if (fantasma->decisao)
-            {
-                primeiro_lado = esquerda;
-                segundo_lado = direita;
-            }
-            else
-            {
-                primeiro_lado = direita;
-                segundo_lado = esquerda;
-            }
+            fantasma->decisao = !fantasma->decisao;
 
-            if (valida_movimento(jogo, fantasma, primeiro_lado))
-            {
-                fantasma->decisao = !fantasma->decisao;
+            if (valida_movimento_fantasma(jogo, fantasma, primeiro_lado))
                 continue;
-            }
-            if (valida_movimento(jogo, fantasma, segundo_lado))
-            {
-                fantasma->decisao = !fantasma->decisao;
-                continue;
-            }
 
-            valida_movimento(jogo, fantasma, tras);
+            if (valida_movimento_fantasma(jogo, fantasma, segundo_lado))
+                continue;
+
+            valida_movimento_fantasma(jogo, fantasma, tras);
         }
 
-        // movimentos aleatórios
-        if (fantasma->tipo == 'Y')
+        if (fantasma->tipo == FANTASMA_AMARELO)
         {
             int direcoes[4] = {CIMA, BAIXO, DIREITA, ESQUERDA};
 
-            // tenta até achar um válido
-            for (int i = 0; i < 10; i++)
+            for (int j = 0; j < 10; j++)
             {
                 int index = rand() % 4;
-                if (valida_movimento(jogo, fantasma, direcoes[index]))
+                if (valida_movimento_fantasma(jogo, fantasma, direcoes[index]))
                     break;
             }
         }
