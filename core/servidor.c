@@ -27,14 +27,20 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
     free(msg_nome);
 
     // lendo do arquivo e adicionando ao buffer
-    unsigned char buf[MAX_DADOS / 2];
+    unsigned char buf[MAX_DADOS];
     int total_lido;
 
     while ((total_lido = fread(buf, 1, sizeof(buf), file)) > 0)
-    {
-        struct mensagem_t *msg_arquivo = mensagem_cria(total_lido, MSG_DADOS, buf, *seq);
-        mensagem_envia_sw(socket, msg_arquivo, seq);
-        free(msg_arquivo);
+    {   
+        int consumido = 0;
+
+        while (consumido < total_lido)
+        {
+            struct mensagem_t *msg_arquivo = mensagem_cria(0, MSG_DADOS, NULL, *seq);
+            consumido += mensagem_preenche_dados(msg_arquivo, buf + consumido, total_lido);
+            mensagem_envia_sw(socket, msg_arquivo, seq);
+            free(msg_arquivo);
+        }
     }
 
     // indica que o arquivo foi enviado por completo

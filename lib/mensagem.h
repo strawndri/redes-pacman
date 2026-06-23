@@ -54,4 +54,7 @@ unsigned char *mensagem_serializa(struct mensagem_t *msg);
 
 void mensagem_envia_sw(int socket, struct mensagem_t *msg, unsigned char *seq);
 
+// RETORNO: quantos bytes de dados foram consumidos
+int mensagem_preenche_dados(struct mensagem_t *msg, unsigned char *dados, int tamanho);
+
 #endif

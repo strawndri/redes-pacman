@@ -28,28 +28,11 @@ struct mensagem_t *mensagem_cria(unsigned char tamanho,
 
     // envio de mesagens que possuem dados
     if (tamanho > 0 && dados != NULL)
-    {   
-        int n = 0;
-        // verifica se há bytes 0x88 e 0x81 (VLAN)
-        for (int i = 0; i < tamanho; i++)
-        {   
-            if (n >= MAX_DADOS)
-                break;
-            
-            msg->dados[n++] = dados[i];
-        
-            // se sim, incluimos o byte 0xff depois destes
-            if (dados[i] == 0x88 || dados[i] == 0x81)
-                msg->dados[n++] = 0xff;
-        }
-        msg->tamanho = (unsigned char)n;
-        if (n < MAX_DADOS)
-            memset(msg->dados + n, 0, MAX_DADOS - n);
-    }
+        mensagem_preenche_dados(msg, dados, tamanho);
     else
     {
         msg->tamanho = 0;
-        memset(msg->dados, 0, MAX_DADOS); // TODO: posteriormente substituir, tendo em vista que o tamanho dos dados precisa variar
+        memset(msg->dados, 0, MAX_DADOS);
     }
 
     return msg;
@@ -154,4 +137,26 @@ void mensagem_envia_sw(int socket, struct mensagem_t *msg, unsigned char *seq)
     }
 
     *seq = (*seq + 1) % 64;
+}
+
+int mensagem_preenche_dados(struct mensagem_t *msg, unsigned char *dados, int tamanho)
+{
+    int n = 0; // bytes escritos em msg->dados;
+    int i = 0; // bytes lidos de fato
+
+    while (i < tamanho && n < MAX_DADOS)
+    {
+        msg->dados[n++] = dados[i];
+
+        if ((dados[i] == 0x88 || dados[i] == 0x81) && n < MAX_DADOS)
+            msg->dados[n++] = 0xff;
+
+        i++;
+    }
+
+    msg->tamanho = (unsigned char)n;
+    if (n < MAX_DADOS)
+        memset(msg->dados + n, 0, MAX_DADOS - n);
+
+    return i;
 }
