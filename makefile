@@ -17,4 +17,4 @@ $(BIN): $(OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(BIN)
+	rm -f *.txt *.mp4 *.jpg $(OBJS) $(BIN)
