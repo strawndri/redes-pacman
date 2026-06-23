@@ -8,7 +8,8 @@
 #include "../lib/mensagem.h"
 #include "../lib/utils.h"
 
-// aux - leitura de teclas no terminal
+// aux - leitura de teclas no terminal --------------
+
 struct termios tecla_original;
 
 void desliga_modo_jogo()
@@ -25,11 +26,11 @@ void liga_modo_jogo()
     tcsetattr(STDIN_FILENO, TCSANOW, &tecla_jogo);
 }
 
-// funções principais
+// funções principais ---------------------------------
 
 void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada)
 {
-    struct mensagem_t msg_get;
+    struct mensagem_t msg_get, *nack, *ack;
     int recebendo_mapa = 1;
     char *buf = NULL;
     int tam_atual = 0;
@@ -40,13 +41,13 @@ void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada)
         {
             if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
             {
-                struct mensagem_t *nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
+                nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
                 mensagem_envia(socket, nack);
                 free(nack);
                 continue;
             }
 
-            struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
+            ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
             mensagem_envia(socket, ack);
             free(ack);
 
@@ -128,12 +129,15 @@ void cliente_recebe_mapa(int socket, unsigned char *seq_s_esperada)
 
 int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 {
-    struct mensagem_t msg_get;
+    struct mensagem_t msg_get, *nack, *ack;
     FILE *arquivo = NULL;
     int recebendo_arquivo = 1;
     int iniciou_envio = 0;
     int status_jogo = 0;
     char nome_arquivo[256] = {0};
+
+    int n; // total de bytes recebidos (com os 0xff inseridos)
+    int w; // posição de escrita
 
     while (recebendo_arquivo)
     {
@@ -149,13 +153,13 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
         if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
         {
-            struct mensagem_t *nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
+            nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
             mensagem_envia(socket, nack);
             free(nack);
             continue;
         }
 
-        struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
+        ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
         mensagem_envia(socket, ack);
         free(ack);
 
@@ -176,8 +180,8 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
         if ((msg_get.tipo == MSG_DADOS) && arquivo)
         {
             // remove bytes 0xff inseridos pelo emissor
-            int n = msg_get.tamanho;
-            int w = 0;
+            n = msg_get.tamanho;
+            w = 0;
 
             for (int r = 0; r < n; r++)
             {
