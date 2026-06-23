@@ -186,6 +186,11 @@ void servidor_executa(int socket, char *caminho_mapa)
             printf("vitória\n");
             break;
         }
+
+        // sinaliza o fim de uma rodada
+        struct mensagem_t *msg_fim_rodada = mensagem_cria(0, MSG_FIM_RODADA, NULL, seq_s);
+        mensagem_envia_sw(socket, msg_fim_rodada, &seq_s);
+        free(msg_fim_rodada);
     }
 
     close(socket);

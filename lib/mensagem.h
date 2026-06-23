@@ -23,8 +23,9 @@ enum tipo_msg_t
     MSG_MOV_ESQ = 11,
     MSG_MOV_CIMA = 12,
     MSG_MOV_BAIXO = 13,
+    MSG_FIM_RODADA = 14,
     MSG_ERRO = 15,
-    MSG_FIM = 16
+    MSG_FIM = 16,
 };
 
 // estrutura que define uma mensagem

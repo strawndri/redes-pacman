@@ -199,9 +199,10 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
                 fclose(arquivo);
                 arquivo = NULL;
             }
-            else
-                recebendo_arquivo = 0;
         }
+
+        if (msg_get.tipo == MSG_FIM_RODADA)
+            recebendo_arquivo = 0;
 
         if (msg_get.tipo == MSG_VITORIA)
         {

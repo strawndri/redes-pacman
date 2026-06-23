@@ -113,12 +113,15 @@ void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tip
     if (tipo == LOG_MSG)
     {
         if (msg->tipo == MSG_ACK)
-            fprintf(fd, " -> ACK\n");
+            fprintf(fd, " -> ACK");
         else if (msg->tipo == MSG_NACK)
-            fprintf(fd, " -> NACK\n");
+            fprintf(fd, " -> NACK");
         else
+        {
+            fprintf(fd, "\n");
             fprintf(fd, "%7s: tipo=%2d seq=%2d tam=%2d crc=%02x",
                     nome_acao, msg->tipo, msg->sequencia, msg->tamanho, msg->crc);
+        }
     }
     else if (tipo == LOG_TXT)
         fprintf(fd, "%7s: %s\n", nome_acao, txt);
