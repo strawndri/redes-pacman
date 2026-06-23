@@ -11,6 +11,8 @@
 
 #include "utils.h"
 
+static int log_ativo = 0;
+
 int interface_imprime(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME])
 {
     struct ifaddrs *ifaddr;
@@ -71,7 +73,8 @@ int interface_escolhe(int quantidade)
 }
 
 FILE *log_cria()
-{
+{   
+    log_ativo = 1;
     FILE *fd = fopen("log.txt", "w");
 
     if (!fd)
@@ -81,7 +84,11 @@ FILE *log_cria()
 }
 
 void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tipo)
-{
+{   
+    // log não está habilitado
+    if (!log_ativo)
+        return;
+    
     FILE *fd = fopen("log.txt", "a");
     if (!fd)
         return;
