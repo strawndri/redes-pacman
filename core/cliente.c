@@ -292,15 +292,11 @@ void cliente_executa(int socket)
         if (status_jogo == 1)
         {
             printf("vitória\r\n");
-            snprintf(command, sizeof(command), "sudo -u $SUDO_USER xdg-open %s > /dev/null 2>&1 &", "win.jpg");
-            system(command);
             break;
         }
         if (status_jogo == -1)
         {
             printf("derrota\r\n");
-            snprintf(command, sizeof(command), "sudo -u $SUDO_USER xdg-open %s > /dev/null 2>&1 &", "game_over.jpg");
-            system(command);
             break;
         }
     }
