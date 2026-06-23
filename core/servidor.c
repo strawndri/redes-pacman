@@ -13,30 +13,32 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
     if (!file)
         return;
 
+    char txt[50];
+    char *nome_arquivo;
+    struct mensagem_t *msg_nome, *msg_arquivo, *fim;
+    unsigned char buf[MAX_DADOS];
+    int total_lido;
+    int consumido;
+    
     // extrai a pasta e deixa apenas o nome do arquivo
-    char *nome_arquivo = strrchr(caminho, '/');
+    nome_arquivo = strrchr(caminho, '/');
     nome_arquivo = nome_arquivo ? nome_arquivo + 1 : caminho;
 
-    char txt[50];
     snprintf(txt, sizeof(txt), "enviando arquivo %s...", caminho);
     log_mensagem(ARQUIVO, NULL, txt, LOG_TXT);
 
     // envia nome do arquivo
-    struct mensagem_t *msg_nome = mensagem_cria(strlen(nome_arquivo) + 1, tipo, (unsigned char *)nome_arquivo, *seq);
+    msg_nome = mensagem_cria(strlen(nome_arquivo) + 1, tipo, (unsigned char *)nome_arquivo, *seq);
     mensagem_envia_sw(socket, msg_nome, seq);
     free(msg_nome);
 
     // lendo do arquivo e adicionando ao buffer
-    unsigned char buf[MAX_DADOS];
-    int total_lido;
-
     while ((total_lido = fread(buf, 1, sizeof(buf), file)) > 0)
     {   
-        int consumido = 0;
-
+        consumido = 0;
         while (consumido < total_lido)
         {
-            struct mensagem_t *msg_arquivo = mensagem_cria(0, MSG_DADOS, NULL, *seq);
+            msg_arquivo = mensagem_cria(0, MSG_DADOS, NULL, *seq);
             consumido += mensagem_preenche_dados(msg_arquivo, buf + consumido, total_lido - consumido);
             mensagem_envia_sw(socket, msg_arquivo, seq);
             free(msg_arquivo);
@@ -44,7 +46,7 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
     }
 
     // indica que o arquivo foi enviado por completo
-    struct mensagem_t *fim = mensagem_cria(0, MSG_FIM, NULL, *seq);
+    fim = mensagem_cria(0, MSG_FIM, NULL, *seq);
     mensagem_envia_sw(socket, fim, seq);
     free(fim);
 
@@ -52,7 +54,9 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
 }
 
 void servidor_envia_mapa(int socket, struct jogo_t *jogo, unsigned char *seq)
-{
+{   
+    struct mensagem_t *msg;
+    
     unsigned char buf[MAX_DADOS];
     int pos = 0;
     int primeira = 1;
@@ -75,7 +79,7 @@ void servidor_envia_mapa(int socket, struct jogo_t *jogo, unsigned char *seq)
 
             if (pos == MAX_DADOS)
             {
-                struct mensagem_t *msg = mensagem_cria(MAX_DADOS, primeira ? MSG_VISUAL : MSG_DADOS, buf, *seq);
+                msg = mensagem_cria(MAX_DADOS, primeira ? MSG_VISUAL : MSG_DADOS, buf, *seq);
                 mensagem_envia_sw(socket, msg, seq);
                 free(msg);
                 pos = 0;
@@ -116,7 +120,7 @@ void servidor_executa(int socket, char *caminho_mapa)
 
     unsigned char seq_s = 0;
     unsigned char seq_c_esperada = 0;
-    struct mensagem_t msg_get;
+    struct mensagem_t msg_get, *ack, *nack;
 
     while (1)
     {
@@ -125,7 +129,7 @@ void servidor_executa(int socket, char *caminho_mapa)
 
         if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
         {
-            struct mensagem_t *nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
+            nack = mensagem_cria(0, MSG_NACK, NULL, msg_get.sequencia);
             mensagem_envia(socket, nack);
             free(nack);
             continue;
@@ -136,7 +140,7 @@ void servidor_executa(int socket, char *caminho_mapa)
               msg_get.tipo == MSG_MOV_ESQ || msg_get.tipo == MSG_ERRO))
             continue;
 
-        struct mensagem_t *ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
+        ack = mensagem_cria(0, MSG_ACK, NULL, msg_get.sequencia);
         mensagem_envia(socket, ack);
         free(ack);
 
