@@ -132,17 +132,17 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
     int recebendo_arquivo = 1;
     int iniciou_envio = 0;
     int status_jogo = 0;
-    const char *nome_arquivo;
+    char nome_arquivo[256] = {0};
 
     while (recebendo_arquivo)
-    {   
+    {
         if (mensagem_recebe(socket, &msg_get, TIME_OUT_GET) <= 0)
-        {   
+        {
             // sem arquivo, então saí
-            if (!iniciou_envio) 
+            if (!iniciou_envio)
                 break;
             else
-            // tenta novamente, cabo desconectado
+                // tenta novamente, cabo desconectado
                 continue;
         }
 
@@ -165,9 +165,9 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
         // cria arquivo
         if ((msg_get.tipo == MSG_TXT || msg_get.tipo == MSG_JPG || msg_get.tipo == MSG_MP4) && !arquivo)
-        {   
+        {
             iniciou_envio = 1;
-            nome_arquivo = (const char *)msg_get.dados;
+            strncpy(nome_arquivo, (const char *)msg_get.dados, sizeof(nome_arquivo) - 1);
             arquivo = fopen(nome_arquivo, "wb");
         }
 
@@ -198,6 +198,16 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
             {
                 fclose(arquivo);
                 arquivo = NULL;
+
+                if (nome_arquivo[0] != '\0' && status_jogo == 0)
+                {
+                    char command[512];
+
+                    snprintf(command, sizeof(command), "sudo -u $SUDO_USER xdg-open %s > /dev/null 2>&1 &", nome_arquivo);
+                    system(command);
+
+                    nome_arquivo[0] = '\0';
+                }
             }
         }
 
@@ -282,14 +292,14 @@ void cliente_executa(int socket)
         if (status_jogo == 1)
         {
             printf("vitória\r\n");
-            snprintf(command, sizeof(command), "xdg-open %s", "win.jpg");
+            snprintf(command, sizeof(command), "sudo -u $SUDO_USER xdg-open %s > /dev/null 2>&1 &", "win.jpg");
             system(command);
             break;
         }
         if (status_jogo == -1)
         {
             printf("derrota\r\n");
-            snprintf(command, sizeof(command), "xdg-open %s", "game_over.jpg");
+            snprintf(command, sizeof(command), "sudo -u $SUDO_USER xdg-open %s > /dev/null 2>&1 &", "game_over.jpg");
             system(command);
             break;
         }
