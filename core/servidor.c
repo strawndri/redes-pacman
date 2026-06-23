@@ -37,7 +37,7 @@ void servidor_envia_arquivo(int socket, char *caminho, enum tipo_msg_t tipo, uns
         while (consumido < total_lido)
         {
             struct mensagem_t *msg_arquivo = mensagem_cria(0, MSG_DADOS, NULL, *seq);
-            consumido += mensagem_preenche_dados(msg_arquivo, buf + consumido, total_lido);
+            consumido += mensagem_preenche_dados(msg_arquivo, buf + consumido, total_lido - consumido);
             mensagem_envia_sw(socket, msg_arquivo, seq);
             free(msg_arquivo);
         }
