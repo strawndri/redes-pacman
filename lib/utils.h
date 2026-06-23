@@ -34,4 +34,6 @@ FILE *log_cria();
 
 void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tipo);
 
+void arquivo_abre(char *arquivo);
+
 #endif

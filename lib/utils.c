@@ -128,3 +128,19 @@ void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tip
     
     fclose(fd);
 }
+
+void arquivo_abre(char *arquivo)
+{   
+    char command[512];
+    
+    const char *sudo_user = getenv("SUDO_USER");
+    if (sudo_user == NULL) {
+        sudo_user = getenv("USER");
+    }
+    
+    snprintf(command, sizeof(command),
+             "sudo -u %s PULSE_SERVER=unix:/run/user/$(id -u %s)/pulse/native "
+             "xdg-open %s > /dev/null 2>&1 &",
+             sudo_user, sudo_user, arquivo);
+    system(command);
+}

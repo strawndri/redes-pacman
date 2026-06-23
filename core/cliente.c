@@ -6,6 +6,7 @@
 
 #include "cliente.h"
 #include "../lib/mensagem.h"
+#include "../lib/utils.h"
 
 // aux - leitura de teclas no terminal
 struct termios tecla_original;
@@ -201,11 +202,7 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
                 if (nome_arquivo[0] != '\0' && status_jogo == 0)
                 {
-                    char command[512];
-
-                    snprintf(command, sizeof(command), "sudo -u $SUDO_USER xdg-open %s > /dev/null 2>&1 &", nome_arquivo);
-                    system(command);
-
+                    arquivo_abre(nome_arquivo);
                     nome_arquivo[0] = '\0';
                 }
             }
@@ -283,7 +280,6 @@ void cliente_executa(int socket)
         struct mensagem_t *msg_mov = mensagem_cria(0, tipo_mov, NULL, seq_c);
         mensagem_envia_sw(socket, msg_mov, &seq_c);
         free(msg_mov);
-        char command[256];
 
         // mapa atualizado e pastilha
         cliente_recebe_mapa(socket, &seq_s_esperado);
