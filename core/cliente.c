@@ -130,14 +130,21 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
     struct mensagem_t msg_get;
     FILE *arquivo = NULL;
     int recebendo_arquivo = 1;
+    int iniciou_envio = 0;
     int status_jogo = 0;
     const char *nome_arquivo;
 
     while (recebendo_arquivo)
-    {
-        // deu timeout -> nenhum arquivo foi enviado
-        if (mensagem_recebe(socket, &msg_get, TIME_OUT_SEND) <= 0)
-            break;
+    {   
+        if (mensagem_recebe(socket, &msg_get, TIME_OUT_GET) <= 0)
+        {   
+            // sem arquivo, então saí
+            if (!iniciou_envio) 
+                break;
+            else
+            // tenta novamente, cabo desconectado
+                continue;
+        }
 
         if (crc8_gera(msg_get.dados, msg_get.tamanho) != msg_get.crc)
         {
@@ -158,10 +165,10 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
 
         // cria arquivo
         if ((msg_get.tipo == MSG_TXT || msg_get.tipo == MSG_JPG || msg_get.tipo == MSG_MP4) && !arquivo)
-        {
+        {   
+            iniciou_envio = 1;
             nome_arquivo = (const char *)msg_get.dados;
             arquivo = fopen(nome_arquivo, "wb");
-            printf("arquivo --> %s, seq = %d\r\n", nome_arquivo, msg_get.sequencia);
         }
 
         // escreve arquivo
@@ -191,9 +198,11 @@ int cliente_recebe_arquivo(int socket, unsigned char *seq_s_esperada)
             {
                 fclose(arquivo);
                 arquivo = NULL;
-                printf("pastilha recebida\r\n");
             }
         }
+
+        if (msg_get.tipo == MSG_FIM_RODADA)
+            recebendo_arquivo = 0;
 
         if (msg_get.tipo == MSG_VITORIA)
         {
@@ -264,6 +273,7 @@ void cliente_executa(int socket)
         struct mensagem_t *msg_mov = mensagem_cria(0, tipo_mov, NULL, seq_c);
         mensagem_envia_sw(socket, msg_mov, &seq_c);
         free(msg_mov);
+        char command[256];
 
         // mapa atualizado e pastilha
         cliente_recebe_mapa(socket, &seq_s_esperado);
@@ -272,11 +282,15 @@ void cliente_executa(int socket)
         if (status_jogo == 1)
         {
             printf("vitória\r\n");
+            snprintf(command, sizeof(command), "xdg-open %s", "win.jpg");
+            system(command);
             break;
         }
         if (status_jogo == -1)
         {
             printf("derrota\r\n");
+            snprintf(command, sizeof(command), "xdg-open %s", "game_over.jpg");
+            system(command);
             break;
         }
     }

@@ -23,8 +23,9 @@ enum tipo_msg_t
     MSG_MOV_ESQ = 11,
     MSG_MOV_CIMA = 12,
     MSG_MOV_BAIXO = 13,
+    MSG_FIM_RODADA = 14,
     MSG_ERRO = 15,
-    MSG_FIM = 16
+    MSG_FIM = 16,
 };
 
 // estrutura que define uma mensagem
@@ -50,8 +51,6 @@ int mensagem_recebe(int socket, struct mensagem_t *msg, int timeoutMillis);
 unsigned char crc8_gera(unsigned char *dados, unsigned char tamanho);
 
 unsigned char *mensagem_serializa(struct mensagem_t *msg);
-
-void mensagem_imprime(struct mensagem_t *msg);
 
 void mensagem_envia_sw(int socket, struct mensagem_t *msg, unsigned char *seq);
 
