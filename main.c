@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
     socket = raw_socket_cria(nome_interfaces[i]);
 
-    FILE *log_file;
+    FILE *log_file = NULL;
     if (modo_opcao == MODO_SERVIDOR)
     {
         log_file = log_cria();
@@ -46,7 +46,8 @@ int main(int argc, char *argv[])
     else
         cliente_executa(socket);
 
-    fclose(log_file);
+    if (log_file)
+        fclose(log_file);
 
     return 0;
 }
