@@ -7,15 +7,15 @@
 
 int main(int argc, char *argv[])
 {
+    // trata flags
     if (argc < 2)
         return 1;
 
     if (argv[1][0] != '-')
         return 1;
 
-    char modo = argv[1][1]; // servidor ou cliente
+    char modo = argv[1][1];
     int modo_opcao;
-
     if (modo == 's')
         modo_opcao = MODO_SERVIDOR;
     else if (modo == 'c')

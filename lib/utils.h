@@ -14,12 +14,13 @@
 #define LOG_MSG 1
 #define LOG_TXT 2
 
+// ENUM para os tipos de ações a serem
+// identificadas nas mensagens de log
 enum action_t
 {
     ENVIOU_MSG,
     RECEBEU_MSG,
     ARQUIVO,
-    ERRO
 };
 
 // imprime o nome de todas as interfaces de rede disponíveis
@@ -30,10 +31,16 @@ int interface_imprime(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME]);
 // RETORNO: índice da interface
 int interface_escolhe(int quantidade);
 
+// cria arquivo de log (log.txt)
+// RETORNO: ponteiro para o arquivo de log; NULL se erro
 FILE *log_cria();
 
+// escreve em log.txt o que está sendo processado pelo servidor
+// RETORNO: void
 void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tipo);
 
+// abre uma janela para as pastilhas e os arquivos de derrota/vitória
+// RETORNO: void
 void arquivo_abre(char *arquivo);
 
 #endif

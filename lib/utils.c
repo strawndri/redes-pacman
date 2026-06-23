@@ -11,11 +11,15 @@
 
 #include "utils.h"
 
+// garante que apenas o servidor tenha a capacidade
+// de escrever no arquivo de log
 static int log_ativo = 0;
 
 int interface_imprime(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME])
 {
     struct ifaddrs *ifaddr;
+    int num;
+
     if (getifaddrs(&ifaddr) == -1)
     {
         perror("getifaddrs");
@@ -24,8 +28,7 @@ int interface_imprime(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME])
 
     printf("interfaces disponíveis:\n");
 
-    int num = 0;
-
+    num = 0;
     // percorre todas as interfaces disponíveis
     for (struct ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
     {
@@ -52,17 +55,19 @@ int interface_imprime(char interfaces[MAX_INTERFACES][MAX_INTERFACE_NOME])
 }
 
 int interface_escolhe(int quantidade)
-{
+{   
     if (quantidade <= 0)
     {
         fprintf(stderr, "nenhuma interface encontrada.\n");
         exit(EXIT_FAILURE);
     }
 
+    int escolha;
+
     if (quantidade == 1)
         return 0;
 
-    int escolha = -1;
+    escolha = -1;
     while (escolha < 0 || escolha >= quantidade)
     {
         printf("escolha uma interface: ");
@@ -74,13 +79,15 @@ int interface_escolhe(int quantidade)
 
 FILE *log_cria()
 {   
+    // log habilitado para o servidor
     log_ativo = 1;
-    FILE *fd = fopen("log.txt", "w");
+    FILE *file;
+    file = fopen("log.txt", "w");
 
-    if (!fd)
+    if (!file)
         return NULL;
 
-    return fd;
+    return file;
 }
 
 void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tipo)
@@ -89,15 +96,18 @@ void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tip
     if (!log_ativo)
         return;
     
-    FILE *fd = fopen("log.txt", "a");
-    if (!fd)
+    FILE *file;
+    const char *nome_acao;
+    
+    file = fopen("log.txt", "a");
+    if (!file)
         return;
 
     if ((!msg && tipo == LOG_MSG) || (!txt && tipo == LOG_TXT))
         return;
 
-    const char *nome_acao;
 
+    // cria uma string conforme o tipo de ação disponível
     switch (acao)
     {
         case ENVIOU_MSG:
@@ -109,9 +119,6 @@ void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tip
         case ARQUIVO:
             nome_acao = "ARQUIVO";
             break;
-        case ERRO:
-            nome_acao = "ERRO";
-            break;
         default:
             nome_acao = "";
             break;
@@ -120,31 +127,37 @@ void log_mensagem(enum action_t acao, struct mensagem_t *msg, char *txt, int tip
     if (tipo == LOG_MSG)
     {
         if (msg->tipo == MSG_ACK)
-            fprintf(fd, " -> ACK");
+            fprintf(file, " -> ACK");
         else if (msg->tipo == MSG_NACK)
-            fprintf(fd, " -> NACK");
+            fprintf(file, " -> NACK");
         else
         {
-            fprintf(fd, "\n");
-            fprintf(fd, "%7s: tipo=%2d seq=%2d tam=%2d crc=%02x",
+            fprintf(file, "\n");
+            fprintf(file, "%7s: tipo=%2d seq=%2d tam=%2d crc=%02x",
                     nome_acao, msg->tipo, msg->sequencia, msg->tamanho, msg->crc);
         }
     }
     else if (tipo == LOG_TXT)
-        fprintf(fd, "%7s: %s\n", nome_acao, txt);
+    {
+        fprintf(file, "\n");
+        fprintf(file, "%7s: %s\n", nome_acao, txt);
+    }
     
-    fclose(fd);
+    fclose(file);
 }
 
 void arquivo_abre(char *arquivo)
 {   
     char command[512];
+    const char *sudo_user;
     
-    const char *sudo_user = getenv("SUDO_USER");
+    sudo_user = getenv("SUDO_USER");
     if (sudo_user == NULL) {
         sudo_user = getenv("USER");
     }
-    
+
+    // usa o comando xdg-open para abrir uma janela com o arquivo
+    // faz isso com sudo + variáveis de ambiente
     snprintf(command, sizeof(command),
              "sudo -u %s PULSE_SERVER=unix:/run/user/$(id -u %s)/pulse/native "
              "xdg-open %s > /dev/null 2>&1 &",
