@@ -38,6 +38,12 @@ sudo ./pacman -c
 
 ## Log (somente no servidor)
 
-```
+```bash
 tail -f log.txt
+```
+
+## Para remover os arquivos recebidos, log e objetos:
+
+```bash
+make clean
 ```
