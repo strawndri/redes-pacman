@@ -1,33 +1,31 @@
 # Trabalho 1 - Redes de Computadores I
 
 Feito por:
+- André Akira A Abe Aracema (GRR20240191)
+- Andrieli Luci Gonçalves (GRR20244903)
 
-> André Akira A Abe Aracema (GRR20240191)
+**1 - Compilar**
 
-> Andrieli Luci Gonçalves (GRR20244903)
-
-## 1 - Compilar
-
-```
+```bash
 make
 ```
 
-## 2 - Executar
+**2 - Executar**
 
 O servidor e o cliente devem rodar em máquinas diferentes, conectadas diretamente por cabo de rede. Ambos precisam de privilégios de root.
 
-**Servidor:**
+Servidor:
 ```bash
 sudo ./pacman -s
 ```
 
-**Cliente:**
+Cliente:
 
 ```bash
 sudo ./pacman -c
 ```
 
-## Controles
+**3 - Controles**
 
 | Tecla | Ação |
 |-------|------|
@@ -36,13 +34,13 @@ sudo ./pacman -c
 | `a` | Mover para esquerda |
 | `d` | Mover para direita |
 
-## Log (somente no servidor)
+**4 - Log (somente no servidor)**
 
 ```bash
 tail -f log.txt
 ```
 
-## Para remover os arquivos recebidos, log e objetos:
+**5 - Para remover os arquivos recebidos, log e objetos:**
 
 ```bash
 make clean
